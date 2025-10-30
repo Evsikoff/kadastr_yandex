@@ -336,14 +336,14 @@ export default class GameScene extends Phaser.Scene {
 
   addBlockedCells(cell) {
     const blockedPositions = new Set();
-    
+
     // Соседние ячейки (8 направлений)
     const neighbors = [
       [-1, -1], [-1, 0], [-1, 1],
       [0, -1],           [0, 1],
       [1, -1],  [1, 0],  [1, 1]
     ];
-    
+
     for (const [dr, dc] of neighbors) {
       const newRow = cell.row + dr;
       const newCol = cell.col + dc;
@@ -351,17 +351,17 @@ export default class GameScene extends Phaser.Scene {
         blockedPositions.add(`${newRow},${newCol}`);
       }
     }
-    
+
     // Вся строка
     for (let col = 0; col < this.GRID_SIZE; col++) {
       blockedPositions.add(`${cell.row},${col}`);
     }
-    
+
     // Весь столбец
     for (let row = 0; row < this.GRID_SIZE; row++) {
       blockedPositions.add(`${row},${cell.col}`);
     }
-    
+
     // Все ячейки того же типа
     for (let row = 0; row < this.GRID_SIZE; row++) {
       for (let col = 0; col < this.GRID_SIZE; col++) {
@@ -370,17 +370,17 @@ export default class GameScene extends Phaser.Scene {
         }
       }
     }
-    
+
     // Добавляем X-метки с анимацией
     blockedPositions.forEach(pos => {
       const [row, col] = pos.split(',').map(Number);
       const targetCell = this.grid[row][col];
-      
+
       // Не ставим X на ячейки с домами
       if (targetCell.house) return;
-      
+
       this.blockedCells.add(pos);
-      
+
       if (!targetCell.xMark) {
         const xMark = this.add.text(
           targetCell.x + this.CELL_SIZE / 2,
@@ -393,12 +393,12 @@ export default class GameScene extends Phaser.Scene {
             fontStyle: 'bold'
           }
         ).setOrigin(0.5);
-        
+
         // Случайная анимация появления
         xMark.setScale(0);
         xMark.setAlpha(0);
         xMark.setRotation(Phaser.Math.Between(-180, 180) * Math.PI / 180);
-        
+
         this.tweens.add({
           targets: xMark,
           scale: 1,
@@ -408,12 +408,16 @@ export default class GameScene extends Phaser.Scene {
           delay: Phaser.Math.Between(0, 500),
           ease: 'Back.easeOut'
         });
-        
+
+        // Добавляем обработчик клика на X-метку
+        xMark.setInteractive({ useHandCursor: true });
+        xMark.on('pointerdown', () => this.onXMarkClick(targetCell));
+
         targetCell.xMark = xMark;
         this.gridContainer.add(xMark);
       }
     });
-    
+
     // Проверяем победу
     if (this.houseCount >= 8) {
       this.time.delayedCall(1000, () => {
@@ -500,6 +504,84 @@ export default class GameScene extends Phaser.Scene {
     }
 
     return null;
+  }
+
+  getBlockedPositionsForHouse(houseCell) {
+    // Возвращает Set всех позиций, заблокированных конкретным домом
+    const blockedPositions = new Set();
+
+    // Соседние ячейки (8 направлений)
+    const neighbors = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],           [0, 1],
+      [1, -1],  [1, 0],  [1, 1]
+    ];
+
+    for (const [dr, dc] of neighbors) {
+      const newRow = houseCell.row + dr;
+      const newCol = houseCell.col + dc;
+      if (newRow >= 0 && newRow < this.GRID_SIZE && newCol >= 0 && newCol < this.GRID_SIZE) {
+        blockedPositions.add(`${newRow},${newCol}`);
+      }
+    }
+
+    // Вся строка
+    for (let col = 0; col < this.GRID_SIZE; col++) {
+      blockedPositions.add(`${houseCell.row},${col}`);
+    }
+
+    // Весь столбец
+    for (let row = 0; row < this.GRID_SIZE; row++) {
+      blockedPositions.add(`${row},${houseCell.col}`);
+    }
+
+    // Все ячейки того же типа
+    for (let row = 0; row < this.GRID_SIZE; row++) {
+      for (let col = 0; col < this.GRID_SIZE; col++) {
+        if (this.grid[row][col].type === houseCell.type) {
+          blockedPositions.add(`${row},${col}`);
+        }
+      }
+    }
+
+    return blockedPositions;
+  }
+
+  onXMarkClick(clickedCell) {
+    // Находим дом, к которому относится эта X-метка
+    const houseCell = this.findHouseBlockingCell(clickedCell);
+
+    if (!houseCell) {
+      return;
+    }
+
+    // Получаем все позиции, заблокированные этим домом
+    const blockedPositions = this.getBlockedPositionsForHouse(houseCell);
+
+    // Находим все X-метки этого дома
+    const xMarksToHighlight = [];
+    blockedPositions.forEach(pos => {
+      const [row, col] = pos.split(',').map(Number);
+      const cell = this.grid[row][col];
+
+      // Если в этой ячейке есть X-метка, добавляем её для подсветки
+      if (cell.xMark && !cell.house) {
+        xMarksToHighlight.push(cell.xMark);
+      }
+    });
+
+    // Подсвечиваем все найденные X-метки желтым цветом на 0.5 секунды
+    xMarksToHighlight.forEach(xMark => {
+      const originalColor = xMark.style.color;
+
+      // Меняем цвет на желтый
+      xMark.setColor('#FFFF00');
+
+      // Через 0.5 секунды возвращаем исходный цвет
+      this.time.delayedCall(500, () => {
+        xMark.setColor(originalColor);
+      });
+    });
   }
 
   useHint() {
