@@ -4,9 +4,9 @@ import { MapParser } from '../utils/MapParser.js';
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
-    
+
     this.GRID_SIZE = 8;
-    this.CELL_SIZE = 120;
+    this.CELL_SIZE = 85;
     this.maps = [];
     this.currentMapIndex = 0;
     this.currentMap = null;
@@ -20,7 +20,10 @@ export default class GameScene extends Phaser.Scene {
   preload() {
     // Загружаем файл с картами
     this.load.text('maps', '/maps/kadastrmapsmall.txt');
-    
+
+    // Загружаем фоновое изображение
+    this.load.image('background', '/back.jpg');
+
     // Загружаем заглушки для ассетов
     // В реальном проекте здесь будут реальные PNG файлы
     this.createPlaceholderAssets();
@@ -62,10 +65,12 @@ export default class GameScene extends Phaser.Scene {
 
     // Создаем кадры анимации обычного дома
     const houseColors = [0xCCCCCC, 0x999999, 0x666666, 0xFF0000];
+    const houseSize = this.CELL_SIZE - 25;
+    const houseOffset = 12;
     for (let i = 0; i < 4; i++) {
       const houseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
       houseGraphics.fillStyle(houseColors[i], 1);
-      houseGraphics.fillRect(20, 20, 80, 80);
+      houseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
       houseGraphics.generateTexture(`house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
       houseGraphics.destroy();
     }
@@ -75,22 +80,26 @@ export default class GameScene extends Phaser.Scene {
     for (let i = 0; i < 4; i++) {
       const hintHouseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
       hintHouseGraphics.fillStyle(hintHouseColors[i], 1);
-      hintHouseGraphics.fillRect(20, 20, 80, 80);
+      hintHouseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
       hintHouseGraphics.generateTexture(`hint_house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
       hintHouseGraphics.destroy();
     }
   }
 
   create() {
+    // Добавляем фоновое изображение
+    const bg = this.add.image(960, 540, 'background');
+    bg.setDisplaySize(1920, 1080);
+
     // Парсим карты
     const mapData = this.cache.text.get('maps');
     this.maps = MapParser.parseMapFile(mapData);
-    
-    // Загружаем первую карту
-    this.loadMap(0);
-    
+
     // Создаем UI
     this.createUI();
+
+    // Загружаем первую карту
+    this.loadMap(0);
   }
 
   loadMap(index) {
@@ -104,11 +113,11 @@ export default class GameScene extends Phaser.Scene {
     
     // Обновляем счетчик уровня
     if (this.levelText) {
-      this.levelText.setText(`Уровень: ${index + 1}/${this.maps.length}`);
+      this.levelText.setText(`${index + 1}/${this.maps.length}`);
     }
-    
+
     if (this.hintCounterText) {
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
     }
     
     // Создаем сетку
@@ -128,9 +137,10 @@ export default class GameScene extends Phaser.Scene {
 
   createGrid() {
     this.gridContainer = this.add.container(0, 0);
-    
-    const startX = (1920 - this.GRID_SIZE * this.CELL_SIZE) / 2;
-    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 50;
+
+    // Используем layout для правильного позиционирования
+    const startX = (1920 - this.layout.gridSize) / 2;
+    const startY = this.layout.gridStartY + this.layout.gridPadding;
     
     // Создаем ячейки
     for (let row = 0; row < this.GRID_SIZE; row++) {
@@ -171,8 +181,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   drawBorders() {
-    const startX = (1920 - this.GRID_SIZE * this.CELL_SIZE) / 2;
-    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 50;
+    // Используем layout для правильного позиционирования
+    const startX = (1920 - this.layout.gridSize) / 2;
+    const startY = this.layout.gridStartY + this.layout.gridPadding;
     
     // Горизонтальные границы
     for (let row = 0; row < this.GRID_SIZE - 1; row++) {
@@ -222,39 +233,315 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createUI() {
-    // Текст уровня
-    this.levelText = this.add.text(50, 30, `Уровень: 1/${this.maps.length}`, {
-      fontSize: '32px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    });
-    
-    // Счетчик подсказок
-    this.hintCounterText = this.add.text(50, 80, `Подсказки: 0`, {
-      fontSize: '28px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    });
-    
-    // Кнопка подсказки
-    const hintButton = this.add.rectangle(1800, 60, 200, 60, 0x4CAF50)
-      .setInteractive({ useHandCursor: true });
-    
-    const hintButtonText = this.add.text(1800, 60, 'Подсказка', {
-      fontSize: '24px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
+    // Система координат для правильного позиционирования
+    const layout = {
+      screenCenterX: 960,
+      headerHeight: 110,
+      gridSize: this.GRID_SIZE * this.CELL_SIZE, // 680px
+      gridPadding: 25,
+      topMargin: 140,
+      bottomGap: 20,
+      sideMargin: 80
+    };
+
+    // Рассчитываем позиции контейнеров
+    layout.gridContainerSize = layout.gridSize + layout.gridPadding * 2; // 730px
+    layout.gridStartY = layout.topMargin;
+    layout.gridEndY = layout.gridStartY + layout.gridContainerSize; // 870px
+
+    layout.statsStartY = layout.gridEndY + layout.bottomGap; // 890px
+    layout.statsHeight = 140;
+
+    // Сохраняем для use в createGrid
+    this.layout = layout;
+
+    // Заголовок "Игра КАДАСТР" - каждое слово на своей строке с улучшенным стилем
+    this.add.text(960, 25, 'Игра', {
+      fontSize: '52px',
+      color: '#FFD700',
+      fontFamily: 'Georgia',
+      fontStyle: 'italic bold',
+      stroke: '#8B4513',
+      strokeThickness: 4,
+      shadow: {
+        offsetX: 3,
+        offsetY: 3,
+        color: '#000000',
+        blur: 5,
+        fill: true
+      }
     }).setOrigin(0.5);
-    
-    hintButton.on('pointerdown', () => this.useHint());
-    hintButton.on('pointerover', () => hintButton.setFillStyle(0x45a049));
-    hintButton.on('pointerout', () => hintButton.setFillStyle(0x4CAF50));
-    
-    // Счетчик домов
-    this.houseCountText = this.add.text(50, 130, `Домов: 0/8`, {
+
+    this.add.text(960, 85, 'КАДАСТР', {
+      fontSize: '72px',
+      color: '#FF6B35',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#8B0000',
+      strokeThickness: 5,
+      shadow: {
+        offsetX: 4,
+        offsetY: 4,
+        color: '#000000',
+        blur: 8,
+        fill: true
+      }
+    }).setOrigin(0.5);
+
+    // Блок "Об игре" - левая панель (выравниваем с игровым полем)
+    const aboutX = layout.sideMargin;
+    const aboutY = layout.gridStartY;
+    const aboutWidth = 320;
+    const aboutHeight = layout.gridContainerSize;
+
+    // Контейнер для "Об игре"
+    const aboutContainer = this.add.graphics();
+    aboutContainer.fillStyle(0x1a1a2e, 0.92);
+    aboutContainer.fillRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 15);
+    aboutContainer.lineStyle(3, 0xFFD700, 1);
+    aboutContainer.strokeRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 15);
+
+    // Тень для контейнера
+    const aboutShadow = this.add.graphics();
+    aboutShadow.fillStyle(0x000000, 0.5);
+    aboutShadow.fillRoundedRect(aboutX - 15, aboutY - 15, aboutWidth + 40, aboutHeight + 40, 15);
+    aboutShadow.setDepth(-1);
+
+    this.add.text(aboutX, aboutY, 'ОБ ИГРЕ', {
+      fontSize: '32px',
+      color: '#FFD700',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#8B4513',
+      strokeThickness: 2
+    });
+
+    const aboutText = `Вы - работник кадастровой фирмы в выдуманном государстве. Ваша задача - спроектировать размещение 8 домов на участках коттеджного поселка.
+
+ПРАВИЛА:
+• На поле 8×8 есть участки
+  8 разных цветов
+• В каждом ряду и столбце
+  должно быть по одному дому
+• Дома не могут стоять
+  в соседних клетках
+  (даже по диагонали)
+• В каждой цветовой зоне
+  должен быть ровно один дом`;
+
+    this.add.text(aboutX, aboutY + 50, aboutText, {
+      fontSize: '17px',
+      color: '#E8E8E8',
+      fontFamily: 'Arial',
+      wordWrap: { width: aboutWidth },
+      lineSpacing: 6
+    });
+
+    // Контейнер для игрового поля
+    const gridContainerX = layout.screenCenterX;
+    const gridContainerWidth = layout.gridContainerSize;
+
+    const gridVisualContainer = this.add.graphics();
+    gridVisualContainer.fillStyle(0x1a1a2e, 0.88);
+    gridVisualContainer.fillRoundedRect(
+      gridContainerX - gridContainerWidth / 2 - 20,
+      layout.gridStartY - 20,
+      gridContainerWidth + 40,
+      gridContainerWidth + 40,
+      15
+    );
+    gridVisualContainer.lineStyle(4, 0x4169E1, 1);
+    gridVisualContainer.strokeRoundedRect(
+      gridContainerX - gridContainerWidth / 2 - 20,
+      layout.gridStartY - 20,
+      gridContainerWidth + 40,
+      gridContainerWidth + 40,
+      15
+    );
+
+    // Тень для контейнера игрового поля
+    const gridShadow = this.add.graphics();
+    gridShadow.fillStyle(0x000000, 0.5);
+    gridShadow.fillRoundedRect(
+      gridContainerX - gridContainerWidth / 2 - 15,
+      layout.gridStartY - 15,
+      gridContainerWidth + 40,
+      gridContainerWidth + 40,
+      15
+    );
+    gridShadow.setDepth(-1);
+
+    // Блок "Управление" - правая панель (выравниваем с игровым полем)
+    const controlX = 1920 - layout.sideMargin - 320;
+    const controlY = layout.gridStartY;
+    const controlWidth = 320;
+    const controlHeight = layout.gridContainerSize;
+
+    // Контейнер для "Управление"
+    const controlContainer = this.add.graphics();
+    controlContainer.fillStyle(0x1a1a2e, 0.92);
+    controlContainer.fillRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 15);
+    controlContainer.lineStyle(3, 0x4CAF50, 1);
+    controlContainer.strokeRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 15);
+
+    // Тень для контейнера
+    const controlShadow = this.add.graphics();
+    controlShadow.fillStyle(0x000000, 0.5);
+    controlShadow.fillRoundedRect(controlX - 15, controlY - 15, controlWidth + 40, controlHeight + 40, 15);
+    controlShadow.setDepth(-1);
+
+    this.add.text(controlX, controlY, 'УПРАВЛЕНИЕ', {
+      fontSize: '32px',
+      color: '#4CAF50',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#2E7D32',
+      strokeThickness: 2
+    });
+
+    const controlText = `• Клик по пустой ячейке -
+  построить дом
+• Клик по дому - снести дом
+• Клик по "X" - показывает,
+  какой дом блокирует
+  эту ячейку
+• Кнопка "Подсказка" -
+  автоматически строит
+  правильный дом
+
+Символы "X" показывают ячейки, заблокированные построенными домами. При клике на "X" все связанные метки подсвечиваются желтым.`;
+
+    this.add.text(controlX, controlY + 50, controlText, {
+      fontSize: '17px',
+      color: '#E8E8E8',
+      fontFamily: 'Arial',
+      wordWrap: { width: controlWidth },
+      lineSpacing: 6
+    });
+
+    // Панель статистики игры внизу (используем layout)
+    const statsX = layout.screenCenterX;
+    const statsY = layout.statsStartY;
+    const statsWidth = 550;
+    const statsHeight = layout.statsHeight;
+
+    // Контейнер для статистики
+    const statsContainer = this.add.graphics();
+    statsContainer.fillStyle(0x1a1a2e, 0.92);
+    statsContainer.fillRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 15);
+    statsContainer.lineStyle(3, 0xFF6B35, 1);
+    statsContainer.strokeRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 15);
+
+    // Тень для контейнера статистики
+    const statsShadow = this.add.graphics();
+    statsShadow.fillStyle(0x000000, 0.5);
+    statsShadow.fillRoundedRect(statsX - statsWidth/2 - 15, statsY - 15, statsWidth + 40, statsHeight + 40, 15);
+    statsShadow.setDepth(-1);
+
+    // Заголовок "СТАТИСТИКА"
+    this.add.text(statsX, statsY + 5, 'СТАТИСТИКА', {
       fontSize: '28px',
+      color: '#FF6B35',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#8B0000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    // Расположение элементов статистики в три колонки
+    const colSpacing = 180;
+    const statY = statsY + 50;
+
+    // Левая колонка - Уровень
+    this.add.text(statsX - colSpacing, statY, 'Уровень', {
+      fontSize: '18px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.levelText = this.add.text(statsX - colSpacing, statY + 35, `1/${this.maps.length}`, {
+      fontSize: '32px',
+      color: '#FFD700',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#8B4513',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    // Центральная колонка - Подсказки
+    this.add.text(statsX, statY, 'Подсказки', {
+      fontSize: '18px',
+      color: '#87CEEB',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.hintCounterText = this.add.text(statsX, statY + 35, '0', {
+      fontSize: '32px',
+      color: '#87CEEB',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#4682B4',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    // Правая колонка - Домов
+    this.add.text(statsX + colSpacing, statY, 'Домов', {
+      fontSize: '18px',
+      color: '#98FB98',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.houseCountText = this.add.text(statsX + colSpacing, statY + 35, '0/8', {
+      fontSize: '32px',
+      color: '#98FB98',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#2E7D32',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    // Кнопка подсказки - размещаем справа от игрового поля
+    const hintButtonX = gridContainerX + gridContainerWidth / 2 + 110;
+    const hintButtonY = layout.gridStartY + gridContainerWidth / 2;
+    const hintButtonWidth = 180;
+    const hintButtonHeight = 70;
+
+    this.hintButton = this.add.graphics();
+    this.hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
+    this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+    this.hintButton.lineStyle(3, 0x2E7D32, 1);
+    this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+    this.hintButton.setInteractive(
+      new Phaser.Geom.Rectangle(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight),
+      Phaser.Geom.Rectangle.Contains
+    );
+
+    const hintButtonText = this.add.text(hintButtonX, hintButtonY, 'Подсказка', {
+      fontSize: '26px',
       color: '#ffffff',
-      fontFamily: 'Arial'
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+      stroke: '#2E7D32',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    this.hintButton.on('pointerdown', () => this.useHint());
+    this.hintButton.on('pointerover', () => {
+      this.hintButton.clear();
+      this.hintButton.fillGradientStyle(0x77CC77, 0x77CC77, 0x5DB85D, 0x5DB85D, 1);
+      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+      this.hintButton.lineStyle(3, 0x2E7D32, 1);
+      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+    });
+    this.hintButton.on('pointerout', () => {
+      this.hintButton.clear();
+      this.hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
+      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+      this.hintButton.lineStyle(3, 0x2E7D32, 1);
+      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
     });
   }
 
@@ -289,10 +576,10 @@ export default class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: house,
       alpha: 1,
-      duration: 500,
+      duration: 167,
       onComplete: () => {
         const frameTimer = this.time.addEvent({
-          delay: 500,
+          delay: 167,
           repeat: frames.length - 1,
           callback: () => {
             frameIndex++;
@@ -312,7 +599,7 @@ export default class GameScene extends Phaser.Scene {
     this.updateHouseCount();
 
     // Добавляем заблокированные ячейки и X-метки
-    this.time.delayedCall(2000, () => {
+    this.time.delayedCall(667, () => {
       this.addBlockedCells(cell);
     });
   }
@@ -387,7 +674,7 @@ export default class GameScene extends Phaser.Scene {
           targetCell.y + this.CELL_SIZE / 2,
           'X',
           {
-            fontSize: '48px',
+            fontSize: '36px',
             color: '#ff0000',
             fontFamily: 'Arial',
             fontStyle: 'bold'
@@ -548,6 +835,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onXMarkClick(clickedCell) {
+    // Показываем сообщение на 2 секунды
+    this.showBlockedMessage();
+
     // Находим дом, к которому относится эта X-метка
     const houseCell = this.findHouseBlockingCell(clickedCell);
 
@@ -600,7 +890,7 @@ export default class GameScene extends Phaser.Scene {
       // Строим "правильный" дом
       this.buildHouse(cell, true);
       this.hintCounter++;
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
       return;
     }
 
@@ -617,7 +907,7 @@ export default class GameScene extends Phaser.Scene {
       // Строим "правильный" дом на данной ячейке
       this.buildHouse(cell, true);
       this.hintCounter++;
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
       return;
     }
 
@@ -625,14 +915,14 @@ export default class GameScene extends Phaser.Scene {
     if (cell.house) {
       // Увеличиваем счетчик и повторяем алгоритм
       this.hintCounter++;
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
       this.useHint(); // Рекурсивный вызов
       return;
     }
   }
 
   updateHouseCount() {
-    this.houseCountText.setText(`Домов: ${this.houseCount}/8`);
+    this.houseCountText.setText(`${this.houseCount}/8`);
   }
 
   showVictory() {
