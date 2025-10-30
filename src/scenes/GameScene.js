@@ -15,6 +15,7 @@ export default class GameScene extends Phaser.Scene {
     this.blockedCells = new Set();
     this.hintCounter = 0;
     this.houseCount = 0;
+    this.cellTexturesAvailable = false;
   }
 
   preload() {
@@ -24,30 +25,50 @@ export default class GameScene extends Phaser.Scene {
     // Загружаем фоновое изображение
     this.load.image('background', '/back.jpg');
 
-    // Загружаем заглушки для ассетов
-    // В реальном проекте здесь будут реальные PNG файлы
-    this.createPlaceholderAssets();
+    // Проверяем наличие текстур ячеек
+    this.cellTexturesAvailable = this.checkCellTexturesAvailability();
+
+    // Создаем необходимые ассеты. Если текстуры отсутствуют — генерируем заглушки ячеек
+    this.createPlaceholderAssets({ includeCellPlaceholders: !this.cellTexturesAvailable });
+
+    if (this.cellTexturesAvailable) {
+      this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onCellTextureLoadError, this);
+
+      for (let i = 0; i < 8; i++) {
+        this.load.image(`cell_${i}`, `/cells/cell_${i}.png`);
+      }
+
+      this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+        this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onCellTextureLoadError, this);
+
+        if (!this.cellTexturesAvailable) {
+          this.createPlaceholderAssets({ includeCellPlaceholders: true });
+        }
+      });
+    }
   }
 
-  createPlaceholderAssets() {
-    // Создаем заглушки для фонов ячеек (8 типов)
-    const colors = [
-      0x90EE90, // 0 - светло-зеленый
-      0x87CEEB, // 1 - голубой
-      0xFFB6C1, // 2 - розовый
-      0xFFD700, // 3 - золотой
-      0xDDA0DD, // 4 - сливовый
-      0xF0E68C, // 5 - хаки
-      0xFF6347, // 6 - томатный
-      0x9370DB  // 7 - фиолетовый
-    ];
+  createPlaceholderAssets({ includeCellPlaceholders = true } = {}) {
+    if (includeCellPlaceholders) {
+      // Создаем заглушки для фонов ячеек (8 типов)
+      const colors = [
+        0x90EE90, // 0 - светло-зеленый
+        0x87CEEB, // 1 - голубой
+        0xFFB6C1, // 2 - розовый
+        0xFFD700, // 3 - золотой
+        0xDDA0DD, // 4 - сливовый
+        0xF0E68C, // 5 - хаки
+        0xFF6347, // 6 - томатный
+        0x9370DB  // 7 - фиолетовый
+      ];
 
-    for (let i = 0; i < 8; i++) {
-      const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-      graphics.fillStyle(colors[i], 1);
-      graphics.fillRect(0, 0, this.CELL_SIZE, this.CELL_SIZE);
-      graphics.generateTexture(`cell_${i}`, this.CELL_SIZE, this.CELL_SIZE);
-      graphics.destroy();
+      for (let i = 0; i < 8; i++) {
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        graphics.fillStyle(colors[i], 1);
+        graphics.fillRect(0, 0, this.CELL_SIZE, this.CELL_SIZE);
+        graphics.generateTexture(`cell_${i}`, this.CELL_SIZE, this.CELL_SIZE);
+        graphics.destroy();
+      }
     }
 
     // Создаем заборы
@@ -83,6 +104,35 @@ export default class GameScene extends Phaser.Scene {
       hintHouseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
       hintHouseGraphics.generateTexture(`hint_house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
       hintHouseGraphics.destroy();
+    }
+  }
+
+  checkCellTexturesAvailability() {
+    if (typeof XMLHttpRequest === 'undefined') {
+      return false;
+    }
+
+    try {
+      for (let i = 0; i < 8; i++) {
+        const request = new XMLHttpRequest();
+        request.open('HEAD', `/cells/cell_${i}.png`, false);
+        request.send(null);
+
+        if (request.status < 200 || request.status >= 400) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.warn('Не удалось проверить наличие текстур ячеек:', error);
+      return false;
+    }
+  }
+
+  onCellTextureLoadError(file) {
+    if (file.key && file.key.startsWith('cell_')) {
+      this.cellTexturesAvailable = false;
     }
   }
 
