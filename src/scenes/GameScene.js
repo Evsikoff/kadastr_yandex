@@ -310,10 +310,15 @@ export default class GameScene extends Phaser.Scene {
 
     // Контейнер для "Об игре"
     const aboutContainer = this.add.graphics();
+    const aboutContainerWidth = aboutWidth + 40;
+    const aboutContainerLeft = aboutX - 20;
+    const aboutContainerTop = aboutY - 20;
+    const aboutContainerHeight = aboutHeight + 40;
+
     aboutContainer.fillStyle(0xF6F0E6, 0.94);
-    aboutContainer.fillRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 18);
+    aboutContainer.fillRoundedRect(aboutContainerLeft, aboutContainerTop, aboutContainerWidth, aboutContainerHeight, 18);
     aboutContainer.lineStyle(3, 0xB56576, 1);
-    aboutContainer.strokeRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 18);
+    aboutContainer.strokeRoundedRect(aboutContainerLeft, aboutContainerTop, aboutContainerWidth, aboutContainerHeight, 18);
 
     // Тень для контейнера
     const aboutShadow = this.add.graphics();
@@ -349,6 +354,88 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: 'Arial',
       wordWrap: { width: aboutWidth },
       lineSpacing: 5
+    });
+
+    // Кнопка подсказки — под блоком "Об игре"
+    const hintButtonWidth = aboutContainerWidth;
+    const hintButtonHeight = 70;
+    const hintButtonX = aboutContainerLeft + hintButtonWidth / 2;
+    const hintButtonY = aboutContainerTop + aboutContainerHeight + hintButtonHeight / 2 + 20;
+
+    this.hintButton = this.add.graphics();
+    this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
+    this.hintButton.fillRoundedRect(
+      hintButtonX - hintButtonWidth / 2,
+      hintButtonY - hintButtonHeight / 2,
+      hintButtonWidth,
+      hintButtonHeight,
+      14
+    );
+    this.hintButton.lineStyle(3, 0x9B2226, 1);
+    this.hintButton.strokeRoundedRect(
+      hintButtonX - hintButtonWidth / 2,
+      hintButtonY - hintButtonHeight / 2,
+      hintButtonWidth,
+      hintButtonHeight,
+      14
+    );
+    this.hintButton.setInteractive(
+      new Phaser.Geom.Rectangle(
+        hintButtonX - hintButtonWidth / 2,
+        hintButtonY - hintButtonHeight / 2,
+        hintButtonWidth,
+        hintButtonHeight
+      ),
+      Phaser.Geom.Rectangle.Contains
+    );
+
+    const hintButtonText = this.add.text(hintButtonX, hintButtonY, 'Подсказка', {
+      fontSize: '24px',
+      color: '#F6F0E6',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+      stroke: '#9B2226',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    this.hintButton.on('pointerdown', () => this.useHint());
+    this.hintButton.on('pointerover', () => {
+      this.hintButton.clear();
+      this.hintButton.fillGradientStyle(0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690, 1);
+      this.hintButton.fillRoundedRect(
+        hintButtonX - hintButtonWidth / 2,
+        hintButtonY - hintButtonHeight / 2,
+        hintButtonWidth,
+        hintButtonHeight,
+        14
+      );
+      this.hintButton.lineStyle(3, 0x9B2226, 1);
+      this.hintButton.strokeRoundedRect(
+        hintButtonX - hintButtonWidth / 2,
+        hintButtonY - hintButtonHeight / 2,
+        hintButtonWidth,
+        hintButtonHeight,
+        14
+      );
+    });
+    this.hintButton.on('pointerout', () => {
+      this.hintButton.clear();
+      this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
+      this.hintButton.fillRoundedRect(
+        hintButtonX - hintButtonWidth / 2,
+        hintButtonY - hintButtonHeight / 2,
+        hintButtonWidth,
+        hintButtonHeight,
+        14
+      );
+      this.hintButton.lineStyle(3, 0x9B2226, 1);
+      this.hintButton.strokeRoundedRect(
+        hintButtonX - hintButtonWidth / 2,
+        hintButtonY - hintButtonHeight / 2,
+        hintButtonWidth,
+        hintButtonHeight,
+        14
+      );
     });
 
     // Контейнер для игрового поля
@@ -517,46 +604,6 @@ export default class GameScene extends Phaser.Scene {
       strokeThickness: 2
     }).setOrigin(0.5);
 
-    // Кнопка подсказки - встроена в панель управления
-    const hintButtonX = controlX + controlWidth / 2;
-    const hintButtonY = controlY + controlHeight - 75;
-    const hintButtonWidth = 180;
-    const hintButtonHeight = 70;
-
-    this.hintButton = this.add.graphics();
-    this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
-    this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
-    this.hintButton.lineStyle(3, 0x9B2226, 1);
-    this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
-    this.hintButton.setInteractive(
-      new Phaser.Geom.Rectangle(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight),
-      Phaser.Geom.Rectangle.Contains
-    );
-
-    const hintButtonText = this.add.text(hintButtonX, hintButtonY, 'Подсказка', {
-      fontSize: '24px',
-      color: '#F6F0E6',
-      fontFamily: 'Arial',
-      fontStyle: 'bold',
-      stroke: '#9B2226',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-
-    this.hintButton.on('pointerdown', () => this.useHint());
-    this.hintButton.on('pointerover', () => {
-      this.hintButton.clear();
-      this.hintButton.fillGradientStyle(0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690, 1);
-      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
-      this.hintButton.lineStyle(3, 0x9B2226, 1);
-      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
-    });
-    this.hintButton.on('pointerout', () => {
-      this.hintButton.clear();
-      this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
-      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
-      this.hintButton.lineStyle(3, 0x9B2226, 1);
-      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
-    });
   }
 
   onCellClick(cell) {
