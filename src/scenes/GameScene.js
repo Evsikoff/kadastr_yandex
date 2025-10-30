@@ -90,8 +90,8 @@ export default class GameScene extends Phaser.Scene {
     // Добавляем фоновое изображение как повторяющийся тайл, подобранный под соотношение 16:9
     const bg = this.add.tileSprite(960, 540, 1920, 1080, 'background');
 
-    // Делим фон на крупные квадратные тайлы 500×500 пикселей
-    const targetTileSize = 500;
+    // Делим фон на крупные квадратные тайлы 1024×1024 пикселей
+    const targetTileSize = 1024;
     const backgroundSource = this.textures.get('background').getSourceImage();
 
     // Чтобы избежать рассинхронизации тайлов из-за дробного масштаба,
