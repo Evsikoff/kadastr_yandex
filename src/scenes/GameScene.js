@@ -113,11 +113,11 @@ export default class GameScene extends Phaser.Scene {
     
     // Обновляем счетчик уровня
     if (this.levelText) {
-      this.levelText.setText(`Уровень: ${index + 1}/${this.maps.length}`);
+      this.levelText.setText(`${index + 1}/${this.maps.length}`);
     }
-    
+
     if (this.hintCounterText) {
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
     }
     
     // Создаем сетку
@@ -361,55 +361,108 @@ export default class GameScene extends Phaser.Scene {
       lineSpacing: 6
     });
 
-    // Нижняя панель с информацией
-    const bottomPanelY = 950;
+    // Панель статистики игры внизу
+    const statsX = 960;
+    const statsY = 920;
+    const statsWidth = 550;
+    const statsHeight = 140;
 
-    // Текст уровня
-    this.levelText = this.add.text(960, bottomPanelY, `Уровень: 1/${this.maps.length}`, {
-      fontSize: '36px',
+    // Контейнер для статистики
+    const statsContainer = this.add.graphics();
+    statsContainer.fillStyle(0x1a1a2e, 0.92);
+    statsContainer.fillRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 15);
+    statsContainer.lineStyle(3, 0xFF6B35, 1);
+    statsContainer.strokeRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 15);
+
+    // Тень для контейнера статистики
+    const statsShadow = this.add.graphics();
+    statsShadow.fillStyle(0x000000, 0.5);
+    statsShadow.fillRoundedRect(statsX - statsWidth/2 - 15, statsY - 15, statsWidth + 40, statsHeight + 40, 15);
+    statsShadow.setDepth(-1);
+
+    // Заголовок "СТАТИСТИКА"
+    this.add.text(statsX, statsY + 5, 'СТАТИСТИКА', {
+      fontSize: '28px',
+      color: '#FF6B35',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#8B0000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    // Расположение элементов статистики в три колонки
+    const colSpacing = 180;
+    const statY = statsY + 50;
+
+    // Левая колонка - Уровень
+    this.add.text(statsX - colSpacing, statY, 'Уровень', {
+      fontSize: '18px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.levelText = this.add.text(statsX - colSpacing, statY + 35, `1/${this.maps.length}`, {
+      fontSize: '32px',
       color: '#FFD700',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
       stroke: '#8B4513',
-      strokeThickness: 3,
-      backgroundColor: '#1a1a2eee',
-      padding: { x: 20, y: 12 }
+      strokeThickness: 2
     }).setOrigin(0.5);
 
-    // Счетчик подсказок
-    this.hintCounterText = this.add.text(960, bottomPanelY + 55, `Подсказки: 0`, {
-      fontSize: '28px',
+    // Центральная колонка - Подсказки
+    this.add.text(statsX, statY, 'Подсказки', {
+      fontSize: '18px',
       color: '#87CEEB',
       fontFamily: 'Arial',
-      fontStyle: 'bold',
-      backgroundColor: '#1a1a2eee',
-      padding: { x: 18, y: 10 }
+      fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Счетчик домов
-    this.houseCountText = this.add.text(960, bottomPanelY + 105, `Домов: 0/8`, {
-      fontSize: '28px',
+    this.hintCounterText = this.add.text(statsX, statY + 35, '0', {
+      fontSize: '32px',
+      color: '#87CEEB',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#4682B4',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    // Правая колонка - Домов
+    this.add.text(statsX + colSpacing, statY, 'Домов', {
+      fontSize: '18px',
       color: '#98FB98',
       fontFamily: 'Arial',
-      fontStyle: 'bold',
-      backgroundColor: '#1a1a2eee',
-      padding: { x: 18, y: 10 }
+      fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Кнопка подсказки с улучшенным стилем
-    const hintButtonY = bottomPanelY - 60;
-    const hintButton = this.add.graphics();
-    hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
-    hintButton.fillRoundedRect(860, hintButtonY - 30, 200, 60, 10);
-    hintButton.lineStyle(3, 0x2E7D32, 1);
-    hintButton.strokeRoundedRect(860, hintButtonY - 30, 200, 60, 10);
-    hintButton.setInteractive(
-      new Phaser.Geom.Rectangle(860, hintButtonY - 30, 200, 60),
+    this.houseCountText = this.add.text(statsX + colSpacing, statY + 35, '0/8', {
+      fontSize: '32px',
+      color: '#98FB98',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#2E7D32',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    // Кнопка подсказки - размещаем справа от игрового поля
+    const hintButtonX = 1125;
+    const hintButtonY = 540;
+    const hintButtonWidth = 180;
+    const hintButtonHeight = 70;
+
+    this.hintButton = this.add.graphics();
+    this.hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
+    this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+    this.hintButton.lineStyle(3, 0x2E7D32, 1);
+    this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+    this.hintButton.setInteractive(
+      new Phaser.Geom.Rectangle(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight),
       Phaser.Geom.Rectangle.Contains
     );
 
-    const hintButtonText = this.add.text(960, hintButtonY, 'Подсказка', {
-      fontSize: '28px',
+    const hintButtonText = this.add.text(hintButtonX, hintButtonY, 'Подсказка', {
+      fontSize: '26px',
       color: '#ffffff',
       fontFamily: 'Arial',
       fontStyle: 'bold',
@@ -417,20 +470,20 @@ export default class GameScene extends Phaser.Scene {
       strokeThickness: 2
     }).setOrigin(0.5);
 
-    hintButton.on('pointerdown', () => this.useHint());
-    hintButton.on('pointerover', () => {
-      hintButton.clear();
-      hintButton.fillGradientStyle(0x77CC77, 0x77CC77, 0x5DB85D, 0x5DB85D, 1);
-      hintButton.fillRoundedRect(860, hintButtonY - 30, 200, 60, 10);
-      hintButton.lineStyle(3, 0x2E7D32, 1);
-      hintButton.strokeRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+    this.hintButton.on('pointerdown', () => this.useHint());
+    this.hintButton.on('pointerover', () => {
+      this.hintButton.clear();
+      this.hintButton.fillGradientStyle(0x77CC77, 0x77CC77, 0x5DB85D, 0x5DB85D, 1);
+      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+      this.hintButton.lineStyle(3, 0x2E7D32, 1);
+      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
     });
-    hintButton.on('pointerout', () => {
-      hintButton.clear();
-      hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
-      hintButton.fillRoundedRect(860, hintButtonY - 30, 200, 60, 10);
-      hintButton.lineStyle(3, 0x2E7D32, 1);
-      hintButton.strokeRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+    this.hintButton.on('pointerout', () => {
+      this.hintButton.clear();
+      this.hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
+      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+      this.hintButton.lineStyle(3, 0x2E7D32, 1);
+      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
     });
   }
 
@@ -779,7 +832,7 @@ export default class GameScene extends Phaser.Scene {
       // Строим "правильный" дом
       this.buildHouse(cell, true);
       this.hintCounter++;
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
       return;
     }
 
@@ -796,7 +849,7 @@ export default class GameScene extends Phaser.Scene {
       // Строим "правильный" дом на данной ячейке
       this.buildHouse(cell, true);
       this.hintCounter++;
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
       return;
     }
 
@@ -804,14 +857,14 @@ export default class GameScene extends Phaser.Scene {
     if (cell.house) {
       // Увеличиваем счетчик и повторяем алгоритм
       this.hintCounter++;
-      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.hintCounterText.setText(`${this.hintCounter}`);
       this.useHint(); // Рекурсивный вызов
       return;
     }
   }
 
   updateHouseCount() {
-    this.houseCountText.setText(`Домов: ${this.houseCount}/8`);
+    this.houseCountText.setText(`${this.houseCount}/8`);
   }
 
   showVictory() {
