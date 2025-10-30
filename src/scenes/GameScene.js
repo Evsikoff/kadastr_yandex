@@ -16,6 +16,8 @@ export default class GameScene extends Phaser.Scene {
     this.hintCounter = 0;
     this.houseCount = 0;
     this.cellTexturesAvailable = false;
+    this.baseHouseTexturesAvailable = false;
+    this.correctHouseTexturesAvailable = false;
   }
 
   preload() {
@@ -25,30 +27,61 @@ export default class GameScene extends Phaser.Scene {
     // Загружаем фоновое изображение
     this.load.image('background', '/back.jpg');
 
-    // Проверяем наличие текстур ячеек
+    // Проверяем наличие текстур ячеек и домов
     this.cellTexturesAvailable = this.checkCellTexturesAvailability();
+    this.baseHouseTexturesAvailable = this.checkHouseTexturesAvailability('/houses/base');
+    this.correctHouseTexturesAvailable = this.checkHouseTexturesAvailability('/houses/correct');
 
-    // Создаем необходимые ассеты. Если текстуры отсутствуют — генерируем заглушки ячеек
-    this.createPlaceholderAssets({ includeCellPlaceholders: !this.cellTexturesAvailable });
+    // Создаем необходимые ассеты. Если текстуры отсутствуют — генерируем заглушки
+    this.createPlaceholderAssets({
+      includeCellPlaceholders: !this.cellTexturesAvailable,
+      includeBaseHousePlaceholders: !this.baseHouseTexturesAvailable,
+      includeHintHousePlaceholders: !this.correctHouseTexturesAvailable
+    });
+
+    const shouldListenForLoadErrors =
+      this.cellTexturesAvailable ||
+      this.baseHouseTexturesAvailable ||
+      this.correctHouseTexturesAvailable;
+
+    if (shouldListenForLoadErrors) {
+      this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onTextureLoadError, this);
+
+      this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+        this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onTextureLoadError, this);
+
+        this.createPlaceholderAssets({
+          includeCellPlaceholders: !this.cellTexturesAvailable,
+          includeBaseHousePlaceholders: !this.baseHouseTexturesAvailable,
+          includeHintHousePlaceholders: !this.correctHouseTexturesAvailable
+        });
+      });
+    }
 
     if (this.cellTexturesAvailable) {
-      this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onCellTextureLoadError, this);
-
       for (let i = 0; i < 8; i++) {
         this.load.image(`cell_${i}`, `/cells/cell_${i}.png`);
       }
+    }
 
-      this.load.once(Phaser.Loader.Events.COMPLETE, () => {
-        this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onCellTextureLoadError, this);
+    if (this.baseHouseTexturesAvailable) {
+      for (let i = 0; i < 4; i++) {
+        this.load.image(`house_${i}`, `/houses/base/house_${i}.png`);
+      }
+    }
 
-        if (!this.cellTexturesAvailable) {
-          this.createPlaceholderAssets({ includeCellPlaceholders: true });
-        }
-      });
+    if (this.correctHouseTexturesAvailable) {
+      for (let i = 0; i < 4; i++) {
+        this.load.image(`hint_house_${i}`, `/houses/correct/house_${i}.png`);
+      }
     }
   }
 
-  createPlaceholderAssets({ includeCellPlaceholders = true } = {}) {
+  createPlaceholderAssets({
+    includeCellPlaceholders = true,
+    includeBaseHousePlaceholders = true,
+    includeHintHousePlaceholders = true
+  } = {}) {
     if (includeCellPlaceholders) {
       // Создаем заглушки для фонов ячеек (8 типов)
       const colors = [
@@ -84,26 +117,31 @@ export default class GameScene extends Phaser.Scene {
     fenceGraphicsV.generateTexture('fence_v', 8, this.CELL_SIZE);
     fenceGraphicsV.destroy();
 
-    // Создаем кадры анимации обычного дома
-    const houseColors = [0xCCCCCC, 0x999999, 0x666666, 0xFF0000];
     const houseSize = this.CELL_SIZE - 25;
     const houseOffset = 12;
-    for (let i = 0; i < 4; i++) {
-      const houseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-      houseGraphics.fillStyle(houseColors[i], 1);
-      houseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
-      houseGraphics.generateTexture(`house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
-      houseGraphics.destroy();
+
+    if (includeBaseHousePlaceholders) {
+      // Создаем кадры анимации обычного дома
+      const houseColors = [0xCCCCCC, 0x999999, 0x666666, 0xFF0000];
+      for (let i = 0; i < 4; i++) {
+        const houseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+        houseGraphics.fillStyle(houseColors[i], 1);
+        houseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
+        houseGraphics.generateTexture(`house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
+        houseGraphics.destroy();
+      }
     }
 
-    // Создаем кадры анимации "правильного" дома (зеленые)
-    const hintHouseColors = [0xAAEEAA, 0x77DD77, 0x44CC44, 0x00AA00];
-    for (let i = 0; i < 4; i++) {
-      const hintHouseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-      hintHouseGraphics.fillStyle(hintHouseColors[i], 1);
-      hintHouseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
-      hintHouseGraphics.generateTexture(`hint_house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
-      hintHouseGraphics.destroy();
+    if (includeHintHousePlaceholders) {
+      // Создаем кадры анимации "правильного" дома (зеленые)
+      const hintHouseColors = [0xAAEEAA, 0x77DD77, 0x44CC44, 0x00AA00];
+      for (let i = 0; i < 4; i++) {
+        const hintHouseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+        hintHouseGraphics.fillStyle(hintHouseColors[i], 1);
+        hintHouseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
+        hintHouseGraphics.generateTexture(`hint_house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
+        hintHouseGraphics.destroy();
+      }
     }
   }
 
@@ -130,9 +168,42 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  onCellTextureLoadError(file) {
-    if (file.key && file.key.startsWith('cell_')) {
+  checkHouseTexturesAvailability(basePath) {
+    if (typeof XMLHttpRequest === 'undefined') {
+      return false;
+    }
+
+    try {
+      for (let i = 0; i < 4; i++) {
+        const request = new XMLHttpRequest();
+        request.open('HEAD', `${basePath}/house_${i}.png`, false);
+        request.send(null);
+
+        if (request.status < 200 || request.status >= 400) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.warn(`Не удалось проверить наличие текстур домов по пути ${basePath}:`, error);
+      return false;
+    }
+  }
+
+  onTextureLoadError(file) {
+    if (!file.key) return;
+
+    if (file.key.startsWith('cell_')) {
       this.cellTexturesAvailable = false;
+    }
+
+    if (file.key.startsWith('house_')) {
+      this.baseHouseTexturesAvailable = false;
+    }
+
+    if (file.key.startsWith('hint_house_')) {
+      this.correctHouseTexturesAvailable = false;
     }
   }
 
@@ -663,13 +734,13 @@ export default class GameScene extends Phaser.Scene {
       this.removeHouse(cell);
       return;
     }
-    
-    // Если ячейка заблокирована - показываем сообщение
+
+    // Если ячейка заблокирована — подсвечиваем связанные X-метки
     if (this.blockedCells.has(`${cell.row},${cell.col}`)) {
-      this.showBlockedMessage();
+      this.highlightBlockedMarks(cell);
       return;
     }
-    
+
     // Строим дом
     this.buildHouse(cell);
   }
@@ -845,31 +916,6 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  showBlockedMessage() {
-    if (this.blockedMessage) return;
-    
-    this.blockedMessage = this.add.text(
-      960,
-      540,
-      'Здесь нельзя построить дом,\nпока не снесен тот, который ему мешает',
-      {
-        fontSize: '32px',
-        color: '#ffffff',
-        fontFamily: 'Arial',
-        align: 'center',
-        backgroundColor: '#000000',
-        padding: { x: 20, y: 20 }
-      }
-    ).setOrigin(0.5);
-    
-    this.time.delayedCall(2000, () => {
-      if (this.blockedMessage) {
-        this.blockedMessage.destroy();
-        this.blockedMessage = null;
-      }
-    });
-  }
-
   findHouseBlockingCell(targetCell) {
     // Ищем дом, который блокирует данную ячейку
     for (const { cell: houseCell } of this.houses) {
@@ -947,11 +993,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onXMarkClick(clickedCell) {
-    // Показываем сообщение на 2 секунды
-    this.showBlockedMessage();
+    this.highlightBlockedMarks(clickedCell);
+  }
 
+  highlightBlockedMarks(targetCell) {
     // Находим дом, к которому относится эта X-метка
-    const houseCell = this.findHouseBlockingCell(clickedCell);
+    const houseCell = this.findHouseBlockingCell(targetCell);
 
     if (!houseCell) {
       return;
