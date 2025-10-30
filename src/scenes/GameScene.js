@@ -20,7 +20,10 @@ export default class GameScene extends Phaser.Scene {
   preload() {
     // Загружаем файл с картами
     this.load.text('maps', '/maps/kadastrmapsmall.txt');
-    
+
+    // Загружаем фоновое изображение
+    this.load.image('background', '/back.jpg');
+
     // Загружаем заглушки для ассетов
     // В реальном проекте здесь будут реальные PNG файлы
     this.createPlaceholderAssets();
@@ -82,15 +85,19 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Добавляем фоновое изображение
+    const bg = this.add.image(960, 540, 'background');
+    bg.setDisplaySize(1920, 1080);
+
     // Парсим карты
     const mapData = this.cache.text.get('maps');
     this.maps = MapParser.parseMapFile(mapData);
-    
-    // Загружаем первую карту
-    this.loadMap(0);
-    
+
     // Создаем UI
     this.createUI();
+
+    // Загружаем первую карту
+    this.loadMap(0);
   }
 
   loadMap(index) {
@@ -222,40 +229,118 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createUI() {
-    // Текст уровня
-    this.levelText = this.add.text(50, 30, `Уровень: 1/${this.maps.length}`, {
+    // Заголовок "Игра КАДАСТР" - каждое слово на своей строке
+    this.add.text(960, 30, 'Игра', {
+      fontSize: '48px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'italic bold'
+    }).setOrigin(0.5);
+
+    this.add.text(960, 85, 'КАДАСТР', {
+      fontSize: '64px',
+      color: '#FF6347',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5);
+
+    // Блок "Об игре" - левая панель
+    const aboutX = 50;
+    const aboutY = 150;
+    const aboutWidth = 350;
+
+    this.add.text(aboutX, aboutY, 'ОБ ИГРЕ', {
+      fontSize: '28px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    });
+
+    const aboutText = `Вы - работник кадастровой фирмы в выдуманном государстве. Ваша задача - спроектировать размещение 8 домов на участках коттеджного поселка.
+
+ПРАВИЛА:
+• На поле 8×8 есть участки 8 разных цветов
+• В каждом ряду и столбце должно быть по одному дому
+• Дома не могут стоять в соседних клетках (даже по диагонали)
+• В каждой цветовой зоне должен быть ровно один дом`;
+
+    this.add.text(aboutX, aboutY + 40, aboutText, {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      wordWrap: { width: aboutWidth },
+      lineSpacing: 5
+    });
+
+    // Блок "Управление" - правая панель
+    const controlX = 1520;
+    const controlY = 150;
+    const controlWidth = 350;
+
+    this.add.text(controlX, controlY, 'УПРАВЛЕНИЕ', {
+      fontSize: '28px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    });
+
+    const controlText = `• Клик по пустой ячейке - построить дом
+• Клик по дому - снести дом
+• Клик по "X" - показывает, какой дом блокирует эту ячейку
+• Кнопка "Подсказка" - автоматически строит правильный дом
+
+Символы "X" показывают ячейки, заблокированные построенными домами. При клике на "X" все связанные с ним метки подсвечиваются желтым цветом.`;
+
+    this.add.text(controlX, controlY + 40, controlText, {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      wordWrap: { width: controlWidth },
+      lineSpacing: 5
+    });
+
+    // Текст уровня (центр верх)
+    this.levelText = this.add.text(960, 950, `Уровень: 1/${this.maps.length}`, {
       fontSize: '32px',
       color: '#ffffff',
-      fontFamily: 'Arial'
-    });
-    
+      fontFamily: 'Arial',
+      backgroundColor: '#000000aa',
+      padding: { x: 15, y: 10 }
+    }).setOrigin(0.5);
+
     // Счетчик подсказок
-    this.hintCounterText = this.add.text(50, 80, `Подсказки: 0`, {
+    this.hintCounterText = this.add.text(960, 1000, `Подсказки: 0`, {
       fontSize: '28px',
       color: '#ffffff',
-      fontFamily: 'Arial'
-    });
-    
+      fontFamily: 'Arial',
+      backgroundColor: '#000000aa',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5);
+
+    // Счетчик домов
+    this.houseCountText = this.add.text(960, 1045, `Домов: 0/8`, {
+      fontSize: '28px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      backgroundColor: '#000000aa',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5);
+
     // Кнопка подсказки
-    const hintButton = this.add.rectangle(1800, 60, 200, 60, 0x4CAF50)
+    const hintButton = this.add.rectangle(960, 900, 200, 50, 0x4CAF50)
       .setInteractive({ useHandCursor: true });
-    
-    const hintButtonText = this.add.text(1800, 60, 'Подсказка', {
+
+    const hintButtonText = this.add.text(960, 900, 'Подсказка', {
       fontSize: '24px',
       color: '#ffffff',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
-    
+
     hintButton.on('pointerdown', () => this.useHint());
     hintButton.on('pointerover', () => hintButton.setFillStyle(0x45a049));
     hintButton.on('pointerout', () => hintButton.setFillStyle(0x4CAF50));
-    
-    // Счетчик домов
-    this.houseCountText = this.add.text(50, 130, `Домов: 0/8`, {
-      fontSize: '28px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    });
   }
 
   onCellClick(cell) {
@@ -289,10 +374,10 @@ export default class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: house,
       alpha: 1,
-      duration: 500,
+      duration: 167,
       onComplete: () => {
         const frameTimer = this.time.addEvent({
-          delay: 500,
+          delay: 167,
           repeat: frames.length - 1,
           callback: () => {
             frameIndex++;
@@ -312,7 +397,7 @@ export default class GameScene extends Phaser.Scene {
     this.updateHouseCount();
 
     // Добавляем заблокированные ячейки и X-метки
-    this.time.delayedCall(2000, () => {
+    this.time.delayedCall(667, () => {
       this.addBlockedCells(cell);
     });
   }
@@ -548,6 +633,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onXMarkClick(clickedCell) {
+    // Показываем сообщение на 2 секунды
+    this.showBlockedMessage();
+
     // Находим дом, к которому относится эта X-метка
     const houseCell = this.findHouseBlockingCell(clickedCell);
 
