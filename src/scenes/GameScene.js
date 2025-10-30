@@ -272,32 +272,32 @@ export default class GameScene extends Phaser.Scene {
     // Заголовок "Игра КАДАСТР" - каждое слово на своей строке с улучшенным стилем
     this.add.text(960, 25, 'Игра', {
       fontSize: '52px',
-      color: '#FFD700',
+      color: '#2F4858',
       fontFamily: 'Georgia',
       fontStyle: 'italic bold',
-      stroke: '#8B4513',
-      strokeThickness: 4,
+      stroke: '#9B2226',
+      strokeThickness: 3,
       shadow: {
-        offsetX: 3,
-        offsetY: 3,
-        color: '#000000',
-        blur: 5,
+        offsetX: 2,
+        offsetY: 2,
+        color: '#f0e9db',
+        blur: 6,
         fill: true
       }
     }).setOrigin(0.5);
 
     this.add.text(960, 85, 'КАДАСТР', {
       fontSize: '72px',
-      color: '#FF6B35',
+      color: '#3A7CA5',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#8B0000',
-      strokeThickness: 5,
+      stroke: '#1B4965',
+      strokeThickness: 4,
       shadow: {
         offsetX: 4,
         offsetY: 4,
-        color: '#000000',
-        blur: 8,
+        color: '#f0e9db',
+        blur: 10,
         fill: true
       }
     }).setOrigin(0.5);
@@ -306,27 +306,27 @@ export default class GameScene extends Phaser.Scene {
     const aboutX = layout.sideMargin;
     const aboutY = layout.gridStartY;
     const aboutWidth = 320;
-    const aboutHeight = layout.gridContainerSize;
+    const aboutHeight = 460;
 
     // Контейнер для "Об игре"
     const aboutContainer = this.add.graphics();
-    aboutContainer.fillStyle(0x1a1a2e, 0.92);
-    aboutContainer.fillRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 15);
-    aboutContainer.lineStyle(3, 0xFFD700, 1);
-    aboutContainer.strokeRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 15);
+    aboutContainer.fillStyle(0xF6F0E6, 0.94);
+    aboutContainer.fillRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 18);
+    aboutContainer.lineStyle(3, 0xB56576, 1);
+    aboutContainer.strokeRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 18);
 
     // Тень для контейнера
     const aboutShadow = this.add.graphics();
-    aboutShadow.fillStyle(0x000000, 0.5);
-    aboutShadow.fillRoundedRect(aboutX - 15, aboutY - 15, aboutWidth + 40, aboutHeight + 40, 15);
+    aboutShadow.fillStyle(0x000000, 0.3);
+    aboutShadow.fillRoundedRect(aboutX - 15, aboutY - 15, aboutWidth + 40, aboutHeight + 40, 18);
     aboutShadow.setDepth(-1);
 
     this.add.text(aboutX, aboutY, 'ОБ ИГРЕ', {
       fontSize: '32px',
-      color: '#FFD700',
+      color: '#9B2226',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#8B4513',
+      stroke: '#B56576',
       strokeThickness: 2
     });
 
@@ -345,10 +345,10 @@ export default class GameScene extends Phaser.Scene {
 
     this.add.text(aboutX, aboutY + 50, aboutText, {
       fontSize: '17px',
-      color: '#E8E8E8',
+      color: '#2F4858',
       fontFamily: 'Arial',
       wordWrap: { width: aboutWidth },
-      lineSpacing: 6
+      lineSpacing: 5
     });
 
     // Контейнер для игрового поля
@@ -356,7 +356,7 @@ export default class GameScene extends Phaser.Scene {
     const gridContainerWidth = layout.gridContainerSize;
 
     const gridVisualContainer = this.add.graphics();
-    gridVisualContainer.fillStyle(0x1a1a2e, 0.88);
+    gridVisualContainer.fillStyle(0xF6F0E6, 0.92);
     gridVisualContainer.fillRoundedRect(
       gridContainerX - gridContainerWidth / 2 - 20,
       layout.gridStartY - 20,
@@ -364,7 +364,7 @@ export default class GameScene extends Phaser.Scene {
       gridContainerWidth + 40,
       15
     );
-    gridVisualContainer.lineStyle(4, 0x4169E1, 1);
+    gridVisualContainer.lineStyle(4, 0x3A7CA5, 1);
     gridVisualContainer.strokeRoundedRect(
       gridContainerX - gridContainerWidth / 2 - 20,
       layout.gridStartY - 20,
@@ -375,7 +375,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Тень для контейнера игрового поля
     const gridShadow = this.add.graphics();
-    gridShadow.fillStyle(0x000000, 0.5);
+    gridShadow.fillStyle(0x000000, 0.25);
     gridShadow.fillRoundedRect(
       gridContainerX - gridContainerWidth / 2 - 15,
       layout.gridStartY - 15,
@@ -389,27 +389,27 @@ export default class GameScene extends Phaser.Scene {
     const controlX = 1920 - layout.sideMargin - 320;
     const controlY = layout.gridStartY;
     const controlWidth = 320;
-    const controlHeight = layout.gridContainerSize;
+    const controlHeight = 480;
 
     // Контейнер для "Управление"
     const controlContainer = this.add.graphics();
-    controlContainer.fillStyle(0x1a1a2e, 0.92);
-    controlContainer.fillRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 15);
-    controlContainer.lineStyle(3, 0x4CAF50, 1);
-    controlContainer.strokeRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 15);
+    controlContainer.fillStyle(0xF6F0E6, 0.94);
+    controlContainer.fillRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 18);
+    controlContainer.lineStyle(3, 0x3A7CA5, 1);
+    controlContainer.strokeRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 18);
 
     // Тень для контейнера
     const controlShadow = this.add.graphics();
-    controlShadow.fillStyle(0x000000, 0.5);
-    controlShadow.fillRoundedRect(controlX - 15, controlY - 15, controlWidth + 40, controlHeight + 40, 15);
+    controlShadow.fillStyle(0x000000, 0.3);
+    controlShadow.fillRoundedRect(controlX - 15, controlY - 15, controlWidth + 40, controlHeight + 40, 18);
     controlShadow.setDepth(-1);
 
     this.add.text(controlX, controlY, 'УПРАВЛЕНИЕ', {
       fontSize: '32px',
-      color: '#4CAF50',
+      color: '#1B4965',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#2E7D32',
+      stroke: '#3A7CA5',
       strokeThickness: 2
     });
 
@@ -427,10 +427,10 @@ export default class GameScene extends Phaser.Scene {
 
     this.add.text(controlX, controlY + 50, controlText, {
       fontSize: '17px',
-      color: '#E8E8E8',
+      color: '#2F4858',
       fontFamily: 'Arial',
       wordWrap: { width: controlWidth },
-      lineSpacing: 6
+      lineSpacing: 5
     });
 
     // Панель статистики игры внизу (используем layout)
@@ -441,24 +441,24 @@ export default class GameScene extends Phaser.Scene {
 
     // Контейнер для статистики
     const statsContainer = this.add.graphics();
-    statsContainer.fillStyle(0x1a1a2e, 0.92);
-    statsContainer.fillRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 15);
-    statsContainer.lineStyle(3, 0xFF6B35, 1);
-    statsContainer.strokeRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 15);
+    statsContainer.fillStyle(0xF6F0E6, 0.94);
+    statsContainer.fillRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 18);
+    statsContainer.lineStyle(3, 0xB56576, 1);
+    statsContainer.strokeRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 18);
 
     // Тень для контейнера статистики
     const statsShadow = this.add.graphics();
-    statsShadow.fillStyle(0x000000, 0.5);
-    statsShadow.fillRoundedRect(statsX - statsWidth/2 - 15, statsY - 15, statsWidth + 40, statsHeight + 40, 15);
+    statsShadow.fillStyle(0x000000, 0.25);
+    statsShadow.fillRoundedRect(statsX - statsWidth/2 - 15, statsY - 15, statsWidth + 40, statsHeight + 40, 18);
     statsShadow.setDepth(-1);
 
     // Заголовок "СТАТИСТИКА"
     this.add.text(statsX, statsY + 5, 'СТАТИСТИКА', {
       fontSize: '28px',
-      color: '#FF6B35',
+      color: '#9B2226',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#8B0000',
+      stroke: '#B56576',
       strokeThickness: 2
     }).setOrigin(0.5);
 
@@ -469,93 +469,93 @@ export default class GameScene extends Phaser.Scene {
     // Левая колонка - Уровень
     this.add.text(statsX - colSpacing, statY, 'Уровень', {
       fontSize: '18px',
-      color: '#FFD700',
+      color: '#1B4965',
       fontFamily: 'Arial',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     this.levelText = this.add.text(statsX - colSpacing, statY + 35, `1/${this.maps.length}`, {
       fontSize: '32px',
-      color: '#FFD700',
+      color: '#9B2226',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#8B4513',
+      stroke: '#B56576',
       strokeThickness: 2
     }).setOrigin(0.5);
 
     // Центральная колонка - Подсказки
     this.add.text(statsX, statY, 'Подсказки', {
       fontSize: '18px',
-      color: '#87CEEB',
+      color: '#1B4965',
       fontFamily: 'Arial',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     this.hintCounterText = this.add.text(statsX, statY + 35, '0', {
       fontSize: '32px',
-      color: '#87CEEB',
+      color: '#3A7CA5',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#4682B4',
+      stroke: '#1B4965',
       strokeThickness: 2
     }).setOrigin(0.5);
 
     // Правая колонка - Домов
     this.add.text(statsX + colSpacing, statY, 'Домов', {
       fontSize: '18px',
-      color: '#98FB98',
+      color: '#1B4965',
       fontFamily: 'Arial',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     this.houseCountText = this.add.text(statsX + colSpacing, statY + 35, '0/8', {
       fontSize: '32px',
-      color: '#98FB98',
+      color: '#3A7CA5',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#2E7D32',
+      stroke: '#1B4965',
       strokeThickness: 2
     }).setOrigin(0.5);
 
-    // Кнопка подсказки - размещаем справа от игрового поля
-    const hintButtonX = gridContainerX + gridContainerWidth / 2 + 110;
-    const hintButtonY = layout.gridStartY + gridContainerWidth / 2;
+    // Кнопка подсказки - встроена в панель управления
+    const hintButtonX = controlX + controlWidth / 2;
+    const hintButtonY = controlY + controlHeight - 75;
     const hintButtonWidth = 180;
     const hintButtonHeight = 70;
 
     this.hintButton = this.add.graphics();
-    this.hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
-    this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
-    this.hintButton.lineStyle(3, 0x2E7D32, 1);
-    this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+    this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
+    this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
+    this.hintButton.lineStyle(3, 0x9B2226, 1);
+    this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
     this.hintButton.setInteractive(
       new Phaser.Geom.Rectangle(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight),
       Phaser.Geom.Rectangle.Contains
     );
 
     const hintButtonText = this.add.text(hintButtonX, hintButtonY, 'Подсказка', {
-      fontSize: '26px',
-      color: '#ffffff',
+      fontSize: '24px',
+      color: '#F6F0E6',
       fontFamily: 'Arial',
       fontStyle: 'bold',
-      stroke: '#2E7D32',
+      stroke: '#9B2226',
       strokeThickness: 2
     }).setOrigin(0.5);
 
     this.hintButton.on('pointerdown', () => this.useHint());
     this.hintButton.on('pointerover', () => {
       this.hintButton.clear();
-      this.hintButton.fillGradientStyle(0x77CC77, 0x77CC77, 0x5DB85D, 0x5DB85D, 1);
-      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
-      this.hintButton.lineStyle(3, 0x2E7D32, 1);
-      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+      this.hintButton.fillGradientStyle(0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690, 1);
+      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
+      this.hintButton.lineStyle(3, 0x9B2226, 1);
+      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
     });
     this.hintButton.on('pointerout', () => {
       this.hintButton.clear();
-      this.hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
-      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
-      this.hintButton.lineStyle(3, 0x2E7D32, 1);
-      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 12);
+      this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
+      this.hintButton.fillRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
+      this.hintButton.lineStyle(3, 0x9B2226, 1);
+      this.hintButton.strokeRoundedRect(hintButtonX - hintButtonWidth/2, hintButtonY - hintButtonHeight/2, hintButtonWidth, hintButtonHeight, 14);
     });
   }
 
