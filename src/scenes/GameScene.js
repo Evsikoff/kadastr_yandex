@@ -94,10 +94,16 @@ export default class GameScene extends Phaser.Scene {
     const targetTileSize = 500;
     const backgroundSource = this.textures.get('background').getSourceImage();
 
-    bg.setTileScale(
-      targetTileSize / backgroundSource.width,
-      targetTileSize / backgroundSource.height
-    );
+    // Чтобы избежать рассинхронизации тайлов из-за дробного масштаба,
+    // подбираем такое количество тайлов, при котором ширина и высота
+    // укладываются в целое число повторений.
+    const tilesX = Math.max(1, Math.round(bg.width / targetTileSize));
+    const tilesY = Math.max(1, Math.round(bg.height / targetTileSize));
+
+    const tileScaleX = bg.width / (backgroundSource.width * tilesX);
+    const tileScaleY = bg.height / (backgroundSource.height * tilesY);
+
+    bg.setTileScale(tileScaleX, tileScaleY);
 
     // Парсим карты
     const mapData = this.cache.text.get('maps');
