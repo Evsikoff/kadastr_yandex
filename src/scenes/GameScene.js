@@ -38,7 +38,7 @@ export default class GameScene extends Phaser.Scene {
       0xFF6347, // 6 - томатный
       0x9370DB  // 7 - фиолетовый
     ];
-    
+
     for (let i = 0; i < 8; i++) {
       const graphics = this.make.graphics({ x: 0, y: 0, add: false });
       graphics.fillStyle(colors[i], 1);
@@ -46,21 +46,21 @@ export default class GameScene extends Phaser.Scene {
       graphics.generateTexture(`cell_${i}`, this.CELL_SIZE, this.CELL_SIZE);
       graphics.destroy();
     }
-    
+
     // Создаем заборы
     const fenceGraphicsH = this.make.graphics({ x: 0, y: 0, add: false });
     fenceGraphicsH.fillStyle(0x8B4513, 1);
     fenceGraphicsH.fillRect(0, 0, this.CELL_SIZE, 8);
     fenceGraphicsH.generateTexture('fence_h', this.CELL_SIZE, 8);
     fenceGraphicsH.destroy();
-    
+
     const fenceGraphicsV = this.make.graphics({ x: 0, y: 0, add: false });
     fenceGraphicsV.fillStyle(0x8B4513, 1);
     fenceGraphicsV.fillRect(0, 0, 8, this.CELL_SIZE);
     fenceGraphicsV.generateTexture('fence_v', 8, this.CELL_SIZE);
     fenceGraphicsV.destroy();
-    
-    // Создаем кадры анимации дома
+
+    // Создаем кадры анимации обычного дома
     const houseColors = [0xCCCCCC, 0x999999, 0x666666, 0xFF0000];
     for (let i = 0; i < 4; i++) {
       const houseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
@@ -68,6 +68,16 @@ export default class GameScene extends Phaser.Scene {
       houseGraphics.fillRect(20, 20, 80, 80);
       houseGraphics.generateTexture(`house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
       houseGraphics.destroy();
+    }
+
+    // Создаем кадры анимации "правильного" дома (зеленые)
+    const hintHouseColors = [0xAAEEAA, 0x77DD77, 0x44CC44, 0x00AA00];
+    for (let i = 0; i < 4; i++) {
+      const hintHouseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+      hintHouseGraphics.fillStyle(hintHouseColors[i], 1);
+      hintHouseGraphics.fillRect(20, 20, 80, 80);
+      hintHouseGraphics.generateTexture(`hint_house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
+      hintHouseGraphics.destroy();
     }
   }
 
@@ -265,15 +275,17 @@ export default class GameScene extends Phaser.Scene {
     this.buildHouse(cell);
   }
 
-  buildHouse(cell) {
+  buildHouse(cell, isHintHouse = false) {
     // Анимация постройки дома
-    const frames = ['house_0', 'house_1', 'house_2', 'house_3'];
+    const prefix = isHintHouse ? 'hint_house' : 'house';
+    const frames = [`${prefix}_0`, `${prefix}_1`, `${prefix}_2`, `${prefix}_3`];
     let frameIndex = 0;
-    
+
     const house = this.add.image(cell.x, cell.y, frames[0]);
     house.setOrigin(0, 0);
     house.setAlpha(0);
-    
+    house.isHintHouse = isHintHouse;
+
     this.tweens.add({
       targets: house,
       alpha: 1,
@@ -291,14 +303,14 @@ export default class GameScene extends Phaser.Scene {
         });
       }
     });
-    
+
     cell.house = house;
     this.houses.push({ cell, house });
     this.gridContainer.add(house);
-    
+
     this.houseCount++;
     this.updateHouseCount();
-    
+
     // Добавляем заблокированные ячейки и X-метки
     this.time.delayedCall(2000, () => {
       this.addBlockedCells(cell);
@@ -455,27 +467,86 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  findHouseBlockingCell(targetCell) {
+    // Ищем дом, который блокирует данную ячейку
+    for (const { cell: houseCell } of this.houses) {
+      // Проверяем 8 соседних ячеек
+      const neighbors = [
+        [-1, -1], [-1, 0], [-1, 1],
+        [0, -1],           [0, 1],
+        [1, -1],  [1, 0],  [1, 1]
+      ];
+
+      for (const [dr, dc] of neighbors) {
+        if (houseCell.row + dr === targetCell.row && houseCell.col + dc === targetCell.col) {
+          return houseCell;
+        }
+      }
+
+      // Проверяем ту же строку
+      if (houseCell.row === targetCell.row) {
+        return houseCell;
+      }
+
+      // Проверяем тот же столбец
+      if (houseCell.col === targetCell.col) {
+        return houseCell;
+      }
+
+      // Проверяем ту же цветовую область
+      if (houseCell.type === targetCell.type) {
+        return houseCell;
+      }
+    }
+
+    return null;
+  }
+
   useHint() {
     if (this.hintCounter >= 8) {
       return;
     }
-    
-    const row = this.hintCounter;
-    const col = this.currentMap.aCode[this.hintCounter];
-    
+
+    // Определяем координаты ячейки для подсказки
+    const row = this.hintCounter; // Координата по вертикали
+    const col = this.currentMap.aCode[this.hintCounter]; // Координата по горизонтали
+
     const cell = this.grid[row][col];
-    
-    // Если в ячейке уже есть дом или она заблокирована, ничего не делаем
-    if (cell.house || this.blockedCells.has(`${row},${col}`)) {
+
+    // Случай 1: Если в ячейке нет "X" и нет дома
+    if (!cell.house && !this.blockedCells.has(`${row},${col}`)) {
+      // Строим "правильный" дом
+      this.buildHouse(cell, true);
       this.hintCounter++;
       this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
       return;
     }
-    
-    this.buildHouse(cell);
-    
-    this.hintCounter++;
-    this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+
+    // Случай 2: Если в ячейке есть "X"
+    if (this.blockedCells.has(`${row},${col}`) && !cell.house) {
+      // Находим дом, к которому относится этот "X"
+      const blockingHouse = this.findHouseBlockingCell(cell);
+
+      if (blockingHouse) {
+        // Сносим дом, к которому относится "X"
+        this.removeHouse(blockingHouse);
+      }
+
+      // Строим "правильный" дом на данной ячейке
+      this.buildHouse(cell, true);
+      this.hintCounter++;
+      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      return;
+    }
+
+    // Случай 3: Если в ячейке уже есть дом
+    if (cell.house) {
+      // Увеличиваем счетчик и повторяем алгоритм
+      this.hintCounter++;
+      this.hintCounterText.setText(`Подсказки: ${this.hintCounter}`);
+      this.useHint(); // Рекурсивный вызов
+      return;
+    }
   }
 
   updateHouseCount() {
