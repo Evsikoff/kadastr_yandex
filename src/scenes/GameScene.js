@@ -87,10 +87,17 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Добавляем фоновое изображение как повторяющийся тайл 500x500
+    // Добавляем фоновое изображение как повторяющийся тайл, подобранный под соотношение 16:9
     const bg = this.add.tileSprite(960, 540, 1920, 1080, 'background');
-    // Устанавливаем размер тайла 500x500 пикселей
-    bg.setTileScale(500 / bg.texture.getSourceImage().width, 500 / bg.texture.getSourceImage().height);
+
+    // Делим фон на крупные квадратные тайлы 500×500 пикселей
+    const targetTileSize = 500;
+    const backgroundSource = this.textures.get('background').getSourceImage();
+
+    bg.setTileScale(
+      targetTileSize / backgroundSource.width,
+      targetTileSize / backgroundSource.height
+    );
 
     // Парсим карты
     const mapData = this.cache.text.get('maps');
