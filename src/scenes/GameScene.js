@@ -138,8 +138,9 @@ export default class GameScene extends Phaser.Scene {
   createGrid() {
     this.gridContainer = this.add.container(0, 0);
 
-    const startX = (1920 - this.GRID_SIZE * this.CELL_SIZE) / 2;
-    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 80;
+    // Используем layout для правильного позиционирования
+    const startX = (1920 - this.layout.gridSize) / 2;
+    const startY = this.layout.gridStartY + this.layout.gridPadding;
     
     // Создаем ячейки
     for (let row = 0; row < this.GRID_SIZE; row++) {
@@ -180,8 +181,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   drawBorders() {
-    const startX = (1920 - this.GRID_SIZE * this.CELL_SIZE) / 2;
-    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 80;
+    // Используем layout для правильного позиционирования
+    const startX = (1920 - this.layout.gridSize) / 2;
+    const startY = this.layout.gridStartY + this.layout.gridPadding;
     
     // Горизонтальные границы
     for (let row = 0; row < this.GRID_SIZE - 1; row++) {
@@ -231,6 +233,28 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createUI() {
+    // Система координат для правильного позиционирования
+    const layout = {
+      screenCenterX: 960,
+      headerHeight: 110,
+      gridSize: this.GRID_SIZE * this.CELL_SIZE, // 680px
+      gridPadding: 25,
+      topMargin: 140,
+      bottomGap: 20,
+      sideMargin: 80
+    };
+
+    // Рассчитываем позиции контейнеров
+    layout.gridContainerSize = layout.gridSize + layout.gridPadding * 2; // 730px
+    layout.gridStartY = layout.topMargin;
+    layout.gridEndY = layout.gridStartY + layout.gridContainerSize; // 870px
+
+    layout.statsStartY = layout.gridEndY + layout.bottomGap; // 890px
+    layout.statsHeight = 140;
+
+    // Сохраняем для use в createGrid
+    this.layout = layout;
+
     // Заголовок "Игра КАДАСТР" - каждое слово на своей строке с улучшенным стилем
     this.add.text(960, 25, 'Игра', {
       fontSize: '52px',
@@ -264,11 +288,11 @@ export default class GameScene extends Phaser.Scene {
       }
     }).setOrigin(0.5);
 
-    // Блок "Об игре" - левая панель
-    const aboutX = 80;
-    const aboutY = 180;
+    // Блок "Об игре" - левая панель (выравниваем с игровым полем)
+    const aboutX = layout.sideMargin;
+    const aboutY = layout.gridStartY;
     const aboutWidth = 320;
-    const aboutHeight = 720;
+    const aboutHeight = layout.gridContainerSize;
 
     // Контейнер для "Об игре"
     const aboutContainer = this.add.graphics();
@@ -313,11 +337,45 @@ export default class GameScene extends Phaser.Scene {
       lineSpacing: 6
     });
 
-    // Блок "Управление" - правая панель
-    const controlX = 1520;
-    const controlY = 180;
+    // Контейнер для игрового поля
+    const gridContainerX = layout.screenCenterX;
+    const gridContainerWidth = layout.gridContainerSize;
+
+    const gridVisualContainer = this.add.graphics();
+    gridVisualContainer.fillStyle(0x1a1a2e, 0.88);
+    gridVisualContainer.fillRoundedRect(
+      gridContainerX - gridContainerWidth / 2 - 20,
+      layout.gridStartY - 20,
+      gridContainerWidth + 40,
+      gridContainerWidth + 40,
+      15
+    );
+    gridVisualContainer.lineStyle(4, 0x4169E1, 1);
+    gridVisualContainer.strokeRoundedRect(
+      gridContainerX - gridContainerWidth / 2 - 20,
+      layout.gridStartY - 20,
+      gridContainerWidth + 40,
+      gridContainerWidth + 40,
+      15
+    );
+
+    // Тень для контейнера игрового поля
+    const gridShadow = this.add.graphics();
+    gridShadow.fillStyle(0x000000, 0.5);
+    gridShadow.fillRoundedRect(
+      gridContainerX - gridContainerWidth / 2 - 15,
+      layout.gridStartY - 15,
+      gridContainerWidth + 40,
+      gridContainerWidth + 40,
+      15
+    );
+    gridShadow.setDepth(-1);
+
+    // Блок "Управление" - правая панель (выравниваем с игровым полем)
+    const controlX = 1920 - layout.sideMargin - 320;
+    const controlY = layout.gridStartY;
     const controlWidth = 320;
-    const controlHeight = 720;
+    const controlHeight = layout.gridContainerSize;
 
     // Контейнер для "Управление"
     const controlContainer = this.add.graphics();
@@ -361,11 +419,11 @@ export default class GameScene extends Phaser.Scene {
       lineSpacing: 6
     });
 
-    // Панель статистики игры внизу
-    const statsX = 960;
-    const statsY = 920;
+    // Панель статистики игры внизу (используем layout)
+    const statsX = layout.screenCenterX;
+    const statsY = layout.statsStartY;
     const statsWidth = 550;
-    const statsHeight = 140;
+    const statsHeight = layout.statsHeight;
 
     // Контейнер для статистики
     const statsContainer = this.add.graphics();
@@ -446,8 +504,8 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Кнопка подсказки - размещаем справа от игрового поля
-    const hintButtonX = 1125;
-    const hintButtonY = 540;
+    const hintButtonX = gridContainerX + gridContainerWidth / 2 + 110;
+    const hintButtonY = layout.gridStartY + gridContainerWidth / 2;
     const hintButtonWidth = 180;
     const hintButtonHeight = 70;
 
