@@ -217,6 +217,7 @@ export default class GameScene extends Phaser.Scene {
         // Фон ячейки
         const cellBg = this.add.image(x, y, `cell_${cellType}`);
         cellBg.setOrigin(0, 0);
+        cellBg.setDisplaySize(this.CELL_SIZE, this.CELL_SIZE);
         
         // Контейнер для ячейки
         const cell = {
