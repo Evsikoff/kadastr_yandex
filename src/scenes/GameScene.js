@@ -7,6 +7,9 @@ export default class GameScene extends Phaser.Scene {
 
     this.GRID_SIZE = 8;
     this.CELL_SIZE = 85;
+    this.isMobile = false;
+    this.currentOrientation = 'landscape';
+    this.startMapIndex = 0;
     this.maps = [];
     this.currentMapIndex = 0;
     this.currentMap = null;
@@ -18,6 +21,19 @@ export default class GameScene extends Phaser.Scene {
     this.cellTexturesAvailable = false;
     this.baseHouseTexturesAvailable = false;
     this.correctHouseTexturesAvailable = false;
+  }
+
+  init(data = {}) {
+    this.startMapIndex = data.mapIndex ?? 0;
+    this.isMobile = !this.sys.game.device.os.desktop;
+    this.currentOrientation =
+      this.scale.orientation === Phaser.Scale.PORTRAIT ? 'portrait' : 'landscape';
+
+    if (this.isMobile) {
+      this.CELL_SIZE = this.currentOrientation === 'portrait' ? 70 : 80;
+    } else {
+      this.CELL_SIZE = 85;
+    }
   }
 
   preload() {
@@ -208,33 +224,51 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Добавляем фоновое изображение как повторяющийся тайл, подобранный под соотношение 16:9
-    const bg = this.add.tileSprite(960, 540, 1920, 1080, 'background');
+    this.screenWidth = this.scale.gameSize.width;
+    this.screenHeight = this.scale.gameSize.height;
+    this.currentOrientation =
+      this.scale.orientation === Phaser.Scale.PORTRAIT ? 'portrait' : 'landscape';
 
-    // Делим фон на крупные квадратные тайлы 1024×1024 пикселей
+    // Добавляем фоновое изображение как повторяющийся тайл, подстраиваем под текущие размеры сцены
+    const bg = this.add.tileSprite(
+      this.screenWidth / 2,
+      this.screenHeight / 2,
+      this.screenWidth,
+      this.screenHeight,
+      'background'
+    );
+
     const targetTileSize = 1024;
     const backgroundSource = this.textures.get('background').getSourceImage();
 
-    // Чтобы избежать рассинхронизации тайлов из-за дробного масштаба,
-    // подбираем такое количество тайлов, при котором ширина и высота
-    // укладываются в целое число повторений.
-    const tilesX = Math.max(1, Math.round(bg.width / targetTileSize));
-    const tilesY = Math.max(1, Math.round(bg.height / targetTileSize));
+    const tilesX = Math.max(1, Math.round(this.screenWidth / targetTileSize));
+    const tilesY = Math.max(1, Math.round(this.screenHeight / targetTileSize));
 
-    const tileScaleX = bg.width / (backgroundSource.width * tilesX);
-    const tileScaleY = bg.height / (backgroundSource.height * tilesY);
+    const tileScaleX = this.screenWidth / (backgroundSource.width * tilesX);
+    const tileScaleY = this.screenHeight / (backgroundSource.height * tilesY);
 
     bg.setTileScale(tileScaleX, tileScaleY);
 
-    // Парсим карты
     const mapData = this.cache.text.get('maps');
     this.maps = MapParser.parseMapFile(mapData);
 
-    // Создаем UI
     this.createUI();
 
-    // Загружаем первую карту
-    this.loadMap(0);
+    this.loadMap(this.startMapIndex);
+
+    this.scale.on(
+      Phaser.Scale.Events.ORIENTATION_CHANGE,
+      this.handleOrientationChange,
+      this
+    );
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(
+        Phaser.Scale.Events.ORIENTATION_CHANGE,
+        this.handleOrientationChange,
+        this
+      );
+    });
   }
 
   loadMap(index) {
@@ -274,7 +308,7 @@ export default class GameScene extends Phaser.Scene {
     this.gridContainer = this.add.container(0, 0);
 
     // Используем layout для правильного позиционирования
-    const startX = (1920 - this.layout.gridSize) / 2;
+    const startX = (this.screenWidth - this.layout.gridSize) / 2;
     const startY = this.layout.gridStartY + this.layout.gridPadding;
     
     // Создаем ячейки
@@ -318,7 +352,7 @@ export default class GameScene extends Phaser.Scene {
 
   drawBorders() {
     // Используем layout для правильного позиционирования
-    const startX = (1920 - this.layout.gridSize) / 2;
+    const startX = (this.screenWidth - this.layout.gridSize) / 2;
     const startY = this.layout.gridStartY + this.layout.gridPadding;
     
     // Горизонтальные границы
@@ -369,95 +403,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createUI() {
-    // Система координат для правильного позиционирования
-    const layout = {
-      screenCenterX: 960,
-      headerHeight: 110,
-      gridSize: this.GRID_SIZE * this.CELL_SIZE, // 680px
-      gridPadding: 25,
-      topMargin: 140,
-      bottomGap: 20,
-      sideMargin: 80
-    };
+    this.layout = this.calculateLayout();
 
-    // Рассчитываем позиции контейнеров
-    layout.gridContainerSize = layout.gridSize + layout.gridPadding * 2; // 730px
-    layout.gridStartY = layout.topMargin;
-    layout.gridEndY = layout.gridStartY + layout.gridContainerSize; // 870px
+    this.createHeader(this.layout);
+    this.drawGridFrame(this.layout);
 
-    layout.statsStartY = layout.gridEndY + layout.bottomGap; // 890px
-    layout.statsHeight = 140;
-
-    // Сохраняем для use в createGrid
-    this.layout = layout;
-
-    // Заголовок "Игра КАДАСТР" - каждое слово на своей строке с улучшенным стилем
-    this.add.text(960, 25, 'Игра', {
-      fontSize: '52px',
-      color: '#2F4858',
-      fontFamily: 'Georgia',
-      fontStyle: 'italic bold',
-      stroke: '#9B2226',
-      strokeThickness: 3,
-      shadow: {
-        offsetX: 2,
-        offsetY: 2,
-        color: '#f0e9db',
-        blur: 6,
-        fill: true
-      }
-    }).setOrigin(0.5);
-
-    this.add.text(960, 85, 'КАДАСТР', {
-      fontSize: '72px',
-      color: '#3A7CA5',
-      fontFamily: 'Georgia',
-      fontStyle: 'bold',
-      stroke: '#1B4965',
-      strokeThickness: 4,
-      shadow: {
-        offsetX: 4,
-        offsetY: 4,
-        color: '#f0e9db',
-        blur: 10,
-        fill: true
-      }
-    }).setOrigin(0.5);
-
-    // Блок "Об игре" - левая панель (выравниваем с игровым полем)
-    const aboutX = layout.sideMargin;
-    const aboutY = layout.gridStartY;
-    const aboutWidth = 320;
-    const aboutHeight = 460;
-
-    // Контейнер для "Об игре"
-    const aboutContainer = this.add.graphics();
-    const aboutContainerWidth = aboutWidth + 40;
-    const aboutContainerLeft = aboutX - 20;
-    const aboutContainerTop = aboutY - 20;
-    const aboutContainerHeight = aboutHeight + 40;
-
-    aboutContainer.fillStyle(0xF6F0E6, 0.94);
-    aboutContainer.fillRoundedRect(aboutContainerLeft, aboutContainerTop, aboutContainerWidth, aboutContainerHeight, 18);
-    aboutContainer.lineStyle(3, 0xB56576, 1);
-    aboutContainer.strokeRoundedRect(aboutContainerLeft, aboutContainerTop, aboutContainerWidth, aboutContainerHeight, 18);
-
-    // Тень для контейнера
-    const aboutShadow = this.add.graphics();
-    aboutShadow.fillStyle(0x000000, 0.3);
-    aboutShadow.fillRoundedRect(aboutX - 15, aboutY - 15, aboutWidth + 40, aboutHeight + 40, 18);
-    aboutShadow.setDepth(-1);
-
-    this.add.text(aboutX, aboutY, 'ОБ ИГРЕ', {
-      fontSize: '32px',
-      color: '#9B2226',
-      fontFamily: 'Georgia',
-      fontStyle: 'bold',
-      stroke: '#B56576',
-      strokeThickness: 2
-    });
-
-    const aboutText = `Вы - работник кадастровой фирмы в выдуманном государстве. Ваша задача - спроектировать размещение 8 домов на участках коттеджного поселка.
+    const aboutText = `Вы - работник кадастровой фирмы в выдуманном государстве. Ваша задача - спроектировать размещение 8 домов
+ на участках коттеджного поселка.
 
 ПРАВИЛА:
 • На поле 8×8 есть участки
@@ -469,158 +421,6 @@ export default class GameScene extends Phaser.Scene {
   (даже по диагонали)
 • В каждой цветовой зоне
   должен быть ровно один дом`;
-
-    this.add.text(aboutX, aboutY + 50, aboutText, {
-      fontSize: '17px',
-      color: '#2F4858',
-      fontFamily: 'Arial',
-      wordWrap: { width: aboutWidth },
-      lineSpacing: 5
-    });
-
-    // Кнопка подсказки — под блоком "Об игре"
-    const hintButtonWidth = aboutContainerWidth;
-    const hintButtonHeight = 70;
-    const hintButtonX = aboutContainerLeft + hintButtonWidth / 2;
-    const hintButtonY = aboutContainerTop + aboutContainerHeight + hintButtonHeight / 2 + 20;
-
-    this.hintButton = this.add.graphics();
-    this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
-    this.hintButton.fillRoundedRect(
-      hintButtonX - hintButtonWidth / 2,
-      hintButtonY - hintButtonHeight / 2,
-      hintButtonWidth,
-      hintButtonHeight,
-      14
-    );
-    this.hintButton.lineStyle(3, 0x9B2226, 1);
-    this.hintButton.strokeRoundedRect(
-      hintButtonX - hintButtonWidth / 2,
-      hintButtonY - hintButtonHeight / 2,
-      hintButtonWidth,
-      hintButtonHeight,
-      14
-    );
-    this.hintButton.setInteractive(
-      new Phaser.Geom.Rectangle(
-        hintButtonX - hintButtonWidth / 2,
-        hintButtonY - hintButtonHeight / 2,
-        hintButtonWidth,
-        hintButtonHeight
-      ),
-      Phaser.Geom.Rectangle.Contains
-    );
-
-    const hintButtonText = this.add.text(hintButtonX, hintButtonY, 'Подсказка', {
-      fontSize: '24px',
-      color: '#F6F0E6',
-      fontFamily: 'Arial',
-      fontStyle: 'bold',
-      stroke: '#9B2226',
-      strokeThickness: 2
-    }).setOrigin(0.5);
-
-    this.hintButton.on('pointerdown', () => this.useHint());
-    this.hintButton.on('pointerover', () => {
-      this.hintButton.clear();
-      this.hintButton.fillGradientStyle(0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690, 1);
-      this.hintButton.fillRoundedRect(
-        hintButtonX - hintButtonWidth / 2,
-        hintButtonY - hintButtonHeight / 2,
-        hintButtonWidth,
-        hintButtonHeight,
-        14
-      );
-      this.hintButton.lineStyle(3, 0x9B2226, 1);
-      this.hintButton.strokeRoundedRect(
-        hintButtonX - hintButtonWidth / 2,
-        hintButtonY - hintButtonHeight / 2,
-        hintButtonWidth,
-        hintButtonHeight,
-        14
-      );
-    });
-    this.hintButton.on('pointerout', () => {
-      this.hintButton.clear();
-      this.hintButton.fillGradientStyle(0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965, 1);
-      this.hintButton.fillRoundedRect(
-        hintButtonX - hintButtonWidth / 2,
-        hintButtonY - hintButtonHeight / 2,
-        hintButtonWidth,
-        hintButtonHeight,
-        14
-      );
-      this.hintButton.lineStyle(3, 0x9B2226, 1);
-      this.hintButton.strokeRoundedRect(
-        hintButtonX - hintButtonWidth / 2,
-        hintButtonY - hintButtonHeight / 2,
-        hintButtonWidth,
-        hintButtonHeight,
-        14
-      );
-    });
-
-    // Контейнер для игрового поля
-    const gridContainerX = layout.screenCenterX;
-    const gridContainerWidth = layout.gridContainerSize;
-
-    const gridVisualContainer = this.add.graphics();
-    gridVisualContainer.fillStyle(0xF6F0E6, 0.92);
-    gridVisualContainer.fillRoundedRect(
-      gridContainerX - gridContainerWidth / 2 - 20,
-      layout.gridStartY - 20,
-      gridContainerWidth + 40,
-      gridContainerWidth + 40,
-      15
-    );
-    gridVisualContainer.lineStyle(4, 0x3A7CA5, 1);
-    gridVisualContainer.strokeRoundedRect(
-      gridContainerX - gridContainerWidth / 2 - 20,
-      layout.gridStartY - 20,
-      gridContainerWidth + 40,
-      gridContainerWidth + 40,
-      15
-    );
-
-    // Тень для контейнера игрового поля
-    const gridShadow = this.add.graphics();
-    gridShadow.fillStyle(0x000000, 0.25);
-    gridShadow.fillRoundedRect(
-      gridContainerX - gridContainerWidth / 2 - 15,
-      layout.gridStartY - 15,
-      gridContainerWidth + 40,
-      gridContainerWidth + 40,
-      15
-    );
-    gridShadow.setDepth(-1);
-
-    // Блок "Управление" - правая панель (выравниваем с игровым полем)
-    const controlX = 1920 - layout.sideMargin - 320;
-    const controlY = layout.gridStartY;
-    const controlWidth = 320;
-    const controlHeight = 480;
-
-    // Контейнер для "Управление"
-    const controlContainer = this.add.graphics();
-    controlContainer.fillStyle(0xF6F0E6, 0.94);
-    controlContainer.fillRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 18);
-    controlContainer.lineStyle(3, 0x3A7CA5, 1);
-    controlContainer.strokeRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 18);
-
-    // Тень для контейнера
-    const controlShadow = this.add.graphics();
-    controlShadow.fillStyle(0x000000, 0.3);
-    controlShadow.fillRoundedRect(controlX - 15, controlY - 15, controlWidth + 40, controlHeight + 40, 18);
-    controlShadow.setDepth(-1);
-
-    this.add.text(controlX, controlY, 'УПРАВЛЕНИЕ', {
-      fontSize: '32px',
-      color: '#1B4965',
-      fontFamily: 'Georgia',
-      fontStyle: 'bold',
-      stroke: '#3A7CA5',
-      strokeThickness: 2
-    });
 
     const controlText = `• Клик по пустой ячейке -
   построить дом
@@ -634,98 +434,907 @@ export default class GameScene extends Phaser.Scene {
 
 Символы "X" показывают ячейки, заблокированные построенными домами. При клике на "X" все связанные метки подсвечиваются желтым.`;
 
-    this.add.text(controlX, controlY + 50, controlText, {
-      fontSize: '17px',
-      color: '#2F4858',
-      fontFamily: 'Arial',
-      wordWrap: { width: controlWidth },
-      lineSpacing: 5
-    });
+    if (this.layout.about) {
+      this.createPanel({
+        ...this.layout.about,
+        title: 'ОБ ИГРЕ',
+        bodyText: aboutText
+      });
+    }
 
-    // Панель статистики игры внизу (используем layout)
-    const statsX = layout.screenCenterX;
-    const statsY = layout.statsStartY;
-    const statsWidth = 550;
-    const statsHeight = layout.statsHeight;
+    if (this.layout.control) {
+      this.createPanel({
+        ...this.layout.control,
+        title: 'УПРАВЛЕНИЕ',
+        bodyText: controlText
+      });
+    }
 
-    // Контейнер для статистики
-    const statsContainer = this.add.graphics();
-    statsContainer.fillStyle(0xF6F0E6, 0.94);
-    statsContainer.fillRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 18);
-    statsContainer.lineStyle(3, 0xB56576, 1);
-    statsContainer.strokeRoundedRect(statsX - statsWidth/2 - 20, statsY - 20, statsWidth + 40, statsHeight + 40, 18);
+    this.createHintButton(this.layout);
+    this.createStatsSection(this.layout);
+  }
 
-    // Тень для контейнера статистики
-    const statsShadow = this.add.graphics();
-    statsShadow.fillStyle(0x000000, 0.25);
-    statsShadow.fillRoundedRect(statsX - statsWidth/2 - 15, statsY - 15, statsWidth + 40, statsHeight + 40, 18);
-    statsShadow.setDepth(-1);
+  calculateLayout() {
+    const width = this.screenWidth;
+    const height = this.screenHeight;
+    const gridSize = this.GRID_SIZE * this.CELL_SIZE;
+    const isPortrait = this.currentOrientation === 'portrait';
+    const layoutType = this.isMobile ? (isPortrait ? 'mobile-portrait' : 'mobile-landscape') : 'desktop';
 
-    // Заголовок "СТАТИСТИКА"
-    this.add.text(statsX, statsY + 5, 'СТАТИСТИКА', {
-      fontSize: '28px',
-      color: '#9B2226',
-      fontFamily: 'Georgia',
-      fontStyle: 'bold',
-      stroke: '#B56576',
-      strokeThickness: 2
-    }).setOrigin(0.5);
+    const layout = {
+      type: layoutType,
+      width,
+      height,
+      screenCenterX: width / 2,
+      gridSize,
+      gridPadding: this.isMobile ? (isPortrait ? 16 : 22) : 25,
+      gridFramePadding: this.isMobile ? (isPortrait ? 14 : 18) : 20,
+      gridFrameRadius: this.isMobile ? 14 : 15,
+      gridFrameBorderWidth: 4,
+      gridFrameBackgroundAlpha: 0.92,
+      gridFrameShadowAlpha: this.isMobile ? 0.2 : 0.25,
+      gridFrameShadowOffset: this.isMobile ? (isPortrait ? 10 : 12) : 15
+    };
 
-    // Расположение элементов статистики в три колонки
-    const colSpacing = 180;
-    const statY = statsY + 50;
+    layout.gridContainerSize = gridSize + layout.gridPadding * 2;
 
-    // Левая колонка - Уровень
-    this.add.text(statsX - colSpacing, statY, 'Уровень', {
-      fontSize: '18px',
-      color: '#1B4965',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
+    if (layoutType === 'desktop') {
+      const topMargin = 140;
+      const sideMargin = 80;
+      const bottomGap = 20;
 
-    this.levelText = this.add.text(statsX - colSpacing, statY + 35, `1/${this.maps.length}`, {
-      fontSize: '32px',
-      color: '#9B2226',
-      fontFamily: 'Georgia',
-      fontStyle: 'bold',
-      stroke: '#B56576',
-      strokeThickness: 2
-    }).setOrigin(0.5);
+      layout.header = {
+        titleY: 25,
+        subtitleY: 85,
+        titleStyle: {
+          fontSize: '52px',
+          color: '#2F4858',
+          fontFamily: 'Georgia',
+          fontStyle: 'italic bold',
+          stroke: '#9B2226',
+          strokeThickness: 3,
+          shadow: {
+            offsetX: 2,
+            offsetY: 2,
+            color: '#f0e9db',
+            blur: 6,
+            fill: true
+          }
+        },
+        subtitleStyle: {
+          fontSize: '72px',
+          color: '#3A7CA5',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#1B4965',
+          strokeThickness: 4,
+          shadow: {
+            offsetX: 4,
+            offsetY: 4,
+            color: '#f0e9db',
+            blur: 10,
+            fill: true
+          }
+        }
+      };
 
-    // Центральная колонка - Подсказки
-    this.add.text(statsX, statY, 'Подсказки', {
-      fontSize: '18px',
-      color: '#1B4965',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
+      layout.gridStartY = topMargin;
+      layout.gridEndY = layout.gridStartY + layout.gridContainerSize;
 
-    this.hintCounterText = this.add.text(statsX, statY + 35, '0', {
-      fontSize: '32px',
-      color: '#3A7CA5',
-      fontFamily: 'Georgia',
-      fontStyle: 'bold',
-      stroke: '#1B4965',
-      strokeThickness: 2
-    }).setOrigin(0.5);
+      const aboutWidth = 320;
+      const aboutHeight = 460;
+      const aboutPadding = 20;
+      const aboutLeft = sideMargin - aboutPadding;
+      const aboutTop = layout.gridStartY - aboutPadding;
 
-    // Правая колонка - Домов
-    this.add.text(statsX + colSpacing, statY, 'Домов', {
-      fontSize: '18px',
-      color: '#1B4965',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
+      layout.about = {
+        containerLeft: aboutLeft,
+        containerTop: aboutTop,
+        containerWidth: aboutWidth + aboutPadding * 2,
+        containerHeight: aboutHeight + aboutPadding * 2,
+        radius: 18,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.94,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        shadowAlpha: 0.3,
+        shadowOffset: 15,
+        titleX: sideMargin,
+        titleY: layout.gridStartY,
+        titleStyle: {
+          fontSize: '32px',
+          color: '#9B2226',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#B56576',
+          strokeThickness: 2
+        },
+        bodyX: sideMargin,
+        bodyY: layout.gridStartY + 50,
+        bodyStyle: {
+          fontSize: '17px',
+          color: '#2F4858',
+          fontFamily: 'Arial',
+          wordWrap: { width: aboutWidth },
+          lineSpacing: 5
+        }
+      };
 
-    this.houseCountText = this.add.text(statsX + colSpacing, statY + 35, '0/8', {
-      fontSize: '32px',
-      color: '#3A7CA5',
-      fontFamily: 'Georgia',
-      fontStyle: 'bold',
-      stroke: '#1B4965',
-      strokeThickness: 2
-    }).setOrigin(0.5);
+      const hintButtonWidth = layout.about.containerWidth;
+      const hintButtonHeight = 70;
+      const hintButtonX = aboutLeft + hintButtonWidth / 2;
+      const hintButtonY =
+        aboutTop + layout.about.containerHeight + hintButtonHeight / 2 + 20;
 
+      layout.hintButton = {
+        x: hintButtonX,
+        y: hintButtonY,
+        width: hintButtonWidth,
+        height: hintButtonHeight,
+        radius: 14,
+        borderColor: 0x9B2226,
+        borderWidth: 3,
+        colors: [0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965],
+        hoverColors: [0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690],
+        textStyle: {
+          fontSize: '24px',
+          color: '#F6F0E6',
+          fontFamily: 'Arial',
+          fontStyle: 'bold',
+          stroke: '#9B2226',
+          strokeThickness: 2
+        }
+      };
+
+      const controlWidth = 320;
+      const controlHeight = 480;
+      const controlPadding = 20;
+      const controlX = width - sideMargin - controlWidth;
+      const controlLeft = controlX - controlPadding;
+      const controlTop = layout.gridStartY - controlPadding;
+
+      layout.control = {
+        containerLeft: controlLeft,
+        containerTop: controlTop,
+        containerWidth: controlWidth + controlPadding * 2,
+        containerHeight: controlHeight + controlPadding * 2,
+        radius: 18,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.94,
+        borderColor: 0x3A7CA5,
+        borderWidth: 3,
+        shadowAlpha: 0.3,
+        shadowOffset: 15,
+        titleX: controlX,
+        titleY: layout.gridStartY,
+        titleStyle: {
+          fontSize: '32px',
+          color: '#1B4965',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#3A7CA5',
+          strokeThickness: 2
+        },
+        bodyX: controlX,
+        bodyY: layout.gridStartY + 50,
+        bodyStyle: {
+          fontSize: '17px',
+          color: '#2F4858',
+          fontFamily: 'Arial',
+          wordWrap: { width: controlWidth },
+          lineSpacing: 5
+        }
+      };
+
+      const statsWidth = 550;
+      const statsHeight = 140;
+      const statsPadding = 20;
+      const statsContentTop = layout.gridEndY + bottomGap;
+      const statsLeft = layout.screenCenterX - statsWidth / 2 - statsPadding;
+
+      layout.stats = {
+        mode: 'horizontal',
+        containerLeft: statsLeft,
+        containerTop: statsContentTop - statsPadding,
+        containerWidth: statsWidth + statsPadding * 2,
+        containerHeight: statsHeight + statsPadding * 2,
+        radius: 18,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.94,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        shadowAlpha: 0.25,
+        shadowOffset: 15,
+        titleX: layout.screenCenterX,
+        titleY: statsContentTop + 5,
+        titleStyle: {
+          fontSize: '28px',
+          color: '#9B2226',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#B56576',
+          strokeThickness: 2
+        },
+        baseX: layout.screenCenterX,
+        labelY: statsContentTop + 50,
+        valueOffset: 35,
+        columnSpacing: 180,
+        labelStyle: {
+          fontSize: '18px',
+          color: '#1B4965',
+          fontFamily: 'Arial',
+          fontStyle: 'bold'
+        },
+        valueStyles: {
+          level: {
+            fontSize: '32px',
+            color: '#9B2226',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#B56576',
+            strokeThickness: 2
+          },
+          hints: {
+            fontSize: '32px',
+            color: '#3A7CA5',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#1B4965',
+            strokeThickness: 2
+          },
+          houses: {
+            fontSize: '32px',
+            color: '#3A7CA5',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#1B4965',
+            strokeThickness: 2
+          }
+        }
+      };
+    } else if (layoutType === 'mobile-landscape') {
+      const topMargin = 130;
+      const sideMargin = 40;
+      const bottomGap = 18;
+
+      layout.header = {
+        titleY: 40,
+        subtitleY: 110,
+        titleStyle: {
+          fontSize: '46px',
+          color: '#2F4858',
+          fontFamily: 'Georgia',
+          fontStyle: 'italic bold',
+          stroke: '#9B2226',
+          strokeThickness: 3
+        },
+        subtitleStyle: {
+          fontSize: '64px',
+          color: '#3A7CA5',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#1B4965',
+          strokeThickness: 4
+        }
+      };
+
+      layout.gridStartY = topMargin;
+      layout.gridEndY = layout.gridStartY + layout.gridContainerSize;
+
+      const aboutWidth = 280;
+      const aboutHeight = 420;
+      const aboutPadding = 18;
+      const aboutLeft = sideMargin - aboutPadding;
+      const aboutTop = layout.gridStartY - aboutPadding;
+
+      layout.about = {
+        containerLeft: aboutLeft,
+        containerTop: aboutTop,
+        containerWidth: aboutWidth + aboutPadding * 2,
+        containerHeight: aboutHeight + aboutPadding * 2,
+        radius: 16,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.94,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        shadowAlpha: 0.25,
+        shadowOffset: 12,
+        titleX: sideMargin,
+        titleY: layout.gridStartY,
+        titleStyle: {
+          fontSize: '30px',
+          color: '#9B2226',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#B56576',
+          strokeThickness: 2
+        },
+        bodyX: sideMargin,
+        bodyY: layout.gridStartY + 48,
+        bodyStyle: {
+          fontSize: '16px',
+          color: '#2F4858',
+          fontFamily: 'Arial',
+          wordWrap: { width: aboutWidth },
+          lineSpacing: 4
+        }
+      };
+
+      const hintButtonWidth = layout.about.containerWidth;
+      const hintButtonHeight = 68;
+      const hintButtonX = aboutLeft + hintButtonWidth / 2;
+      const hintButtonY =
+        aboutTop + layout.about.containerHeight + hintButtonHeight / 2 + 16;
+
+      layout.hintButton = {
+        x: hintButtonX,
+        y: hintButtonY,
+        width: hintButtonWidth,
+        height: hintButtonHeight,
+        radius: 14,
+        borderColor: 0x9B2226,
+        borderWidth: 3,
+        colors: [0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965],
+        hoverColors: [0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690],
+        textStyle: {
+          fontSize: '22px',
+          color: '#F6F0E6',
+          fontFamily: 'Arial',
+          fontStyle: 'bold',
+          stroke: '#9B2226',
+          strokeThickness: 2
+        }
+      };
+
+      const controlWidth = 280;
+      const controlHeight = 420;
+      const controlPadding = 18;
+      const controlX = width - sideMargin - controlWidth;
+      const controlLeft = controlX - controlPadding;
+      const controlTop = layout.gridStartY - controlPadding;
+
+      layout.control = {
+        containerLeft: controlLeft,
+        containerTop: controlTop,
+        containerWidth: controlWidth + controlPadding * 2,
+        containerHeight: controlHeight + controlPadding * 2,
+        radius: 16,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.94,
+        borderColor: 0x3A7CA5,
+        borderWidth: 3,
+        shadowAlpha: 0.25,
+        shadowOffset: 12,
+        titleX: controlX,
+        titleY: layout.gridStartY,
+        titleStyle: {
+          fontSize: '30px',
+          color: '#1B4965',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#3A7CA5',
+          strokeThickness: 2
+        },
+        bodyX: controlX,
+        bodyY: layout.gridStartY + 48,
+        bodyStyle: {
+          fontSize: '16px',
+          color: '#2F4858',
+          fontFamily: 'Arial',
+          wordWrap: { width: controlWidth },
+          lineSpacing: 4
+        }
+      };
+
+      const statsWidth = 500;
+      const statsHeight = 130;
+      const statsPadding = 18;
+      const statsContentTop = layout.gridEndY + bottomGap;
+      const statsLeft = layout.screenCenterX - statsWidth / 2 - statsPadding;
+
+      layout.stats = {
+        mode: 'horizontal',
+        containerLeft: statsLeft,
+        containerTop: statsContentTop - statsPadding,
+        containerWidth: statsWidth + statsPadding * 2,
+        containerHeight: statsHeight + statsPadding * 2,
+        radius: 16,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.94,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        shadowAlpha: 0.22,
+        shadowOffset: 12,
+        titleX: layout.screenCenterX,
+        titleY: statsContentTop + 4,
+        titleStyle: {
+          fontSize: '26px',
+          color: '#9B2226',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#B56576',
+          strokeThickness: 2
+        },
+        baseX: layout.screenCenterX,
+        labelY: statsContentTop + 46,
+        valueOffset: 30,
+        columnSpacing: 160,
+        labelStyle: {
+          fontSize: '17px',
+          color: '#1B4965',
+          fontFamily: 'Arial',
+          fontStyle: 'bold'
+        },
+        valueStyles: {
+          level: {
+            fontSize: '28px',
+            color: '#9B2226',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#B56576',
+            strokeThickness: 2
+          },
+          hints: {
+            fontSize: '28px',
+            color: '#3A7CA5',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#1B4965',
+            strokeThickness: 2
+          },
+          houses: {
+            fontSize: '28px',
+            color: '#3A7CA5',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#1B4965',
+            strokeThickness: 2
+          }
+        }
+      };
+    } else {
+      const headerTitleY = 60;
+      const headerSubtitleY = 140;
+      const statsContentTop = 220;
+      const statsHeight = 200;
+      const statsPadding = 24;
+      const statsWidth = Math.min(width - 160, 640);
+
+      layout.header = {
+        titleY: headerTitleY,
+        subtitleY: headerSubtitleY,
+        titleStyle: {
+          fontSize: '48px',
+          color: '#2F4858',
+          fontFamily: 'Georgia',
+          fontStyle: 'italic bold',
+          stroke: '#9B2226',
+          strokeThickness: 3
+        },
+        subtitleStyle: {
+          fontSize: '68px',
+          color: '#3A7CA5',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#1B4965',
+          strokeThickness: 4
+        }
+      };
+
+      layout.stats = {
+        mode: 'vertical',
+        containerLeft: width / 2 - (statsWidth + statsPadding * 2) / 2,
+        containerTop: statsContentTop - statsPadding,
+        containerWidth: statsWidth + statsPadding * 2,
+        containerHeight: statsHeight + statsPadding * 2,
+        radius: 18,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.94,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        shadowAlpha: 0.22,
+        shadowOffset: 12,
+        titleX: width / 2,
+        titleY: statsContentTop + 8,
+        titleStyle: {
+          fontSize: '30px',
+          color: '#9B2226',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#B56576',
+          strokeThickness: 2
+        },
+        baseX: width / 2,
+        firstRowY: statsContentTop + 70,
+        rowSpacing: 70,
+        valueOffset: 30,
+        labelStyle: {
+          fontSize: '20px',
+          color: '#1B4965',
+          fontFamily: 'Arial',
+          fontStyle: 'bold'
+        },
+        valueStyles: {
+          level: {
+            fontSize: '34px',
+            color: '#9B2226',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#B56576',
+            strokeThickness: 2
+          },
+          hints: {
+            fontSize: '34px',
+            color: '#3A7CA5',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#1B4965',
+            strokeThickness: 2
+          },
+          houses: {
+            fontSize: '34px',
+            color: '#3A7CA5',
+            fontFamily: 'Georgia',
+            fontStyle: 'bold',
+            stroke: '#1B4965',
+            strokeThickness: 2
+          }
+        }
+      };
+
+      layout.gridStartY = statsContentTop + statsHeight + 40;
+      layout.gridEndY = layout.gridStartY + layout.gridContainerSize;
+
+      const aboutWidth = Math.min(width - 160, 720);
+      const aboutHeight = 420;
+      const aboutPadding = 22;
+      const aboutContentTop = layout.gridEndY + 30;
+      const aboutContainerWidth = aboutWidth + aboutPadding * 2;
+      const aboutLeft = width / 2 - aboutContainerWidth / 2;
+      const aboutTop = aboutContentTop - aboutPadding;
+
+      layout.about = {
+        containerLeft: aboutLeft,
+        containerTop: aboutTop,
+        containerWidth: aboutContainerWidth,
+        containerHeight: aboutHeight + aboutPadding * 2,
+        radius: 18,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.95,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        shadowAlpha: 0.2,
+        shadowOffset: 10,
+        titleX: width / 2,
+        titleY: aboutContentTop,
+        titleOriginX: 0.5,
+        titleOriginY: 0,
+        titleStyle: {
+          fontSize: '34px',
+          color: '#9B2226',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#B56576',
+          strokeThickness: 2
+        },
+        bodyX: aboutLeft + aboutPadding,
+        bodyY: aboutContentTop + 60,
+        bodyStyle: {
+          fontSize: '18px',
+          color: '#2F4858',
+          fontFamily: 'Arial',
+          wordWrap: { width: aboutWidth },
+          lineSpacing: 5
+        }
+      };
+
+      const hintButtonWidth = aboutContainerWidth;
+      const hintButtonHeight = 90;
+      const hintButtonX = width / 2;
+      const hintButtonY =
+        aboutTop + layout.about.containerHeight + hintButtonHeight / 2 + 24;
+
+      layout.hintButton = {
+        x: hintButtonX,
+        y: hintButtonY,
+        width: hintButtonWidth,
+        height: hintButtonHeight,
+        radius: 16,
+        borderColor: 0x9B2226,
+        borderWidth: 3,
+        colors: [0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965],
+        hoverColors: [0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690],
+        textStyle: {
+          fontSize: '28px',
+          color: '#F6F0E6',
+          fontFamily: 'Arial',
+          fontStyle: 'bold',
+          stroke: '#9B2226',
+          strokeThickness: 2
+        }
+      };
+
+      const controlWidth = aboutWidth;
+      const controlHeight = 360;
+      const controlPadding = 22;
+      const controlContentTop = hintButtonY + hintButtonHeight / 2 + 24;
+      const controlContainerWidth = controlWidth + controlPadding * 2;
+      const controlLeft = width / 2 - controlContainerWidth / 2;
+      const controlTop = controlContentTop - controlPadding;
+
+      layout.control = {
+        containerLeft: controlLeft,
+        containerTop: controlTop,
+        containerWidth: controlContainerWidth,
+        containerHeight: controlHeight + controlPadding * 2,
+        radius: 18,
+        backgroundColor: 0xF6F0E6,
+        backgroundAlpha: 0.95,
+        borderColor: 0x3A7CA5,
+        borderWidth: 3,
+        shadowAlpha: 0.2,
+        shadowOffset: 10,
+        titleX: width / 2,
+        titleY: controlContentTop,
+        titleOriginX: 0.5,
+        titleOriginY: 0,
+        titleStyle: {
+          fontSize: '32px',
+          color: '#1B4965',
+          fontFamily: 'Georgia',
+          fontStyle: 'bold',
+          stroke: '#3A7CA5',
+          strokeThickness: 2
+        },
+        bodyX: controlLeft + controlPadding,
+        bodyY: controlContentTop + 60,
+        bodyStyle: {
+          fontSize: '18px',
+          color: '#2F4858',
+          fontFamily: 'Arial',
+          wordWrap: { width: controlWidth },
+          lineSpacing: 5
+        }
+      };
+    }
+
+    return layout;
+  }
+
+  createHeader(layout) {
+    if (!layout.header) {
+      return;
+    }
+
+    this.add
+      .text(layout.screenCenterX, layout.header.titleY, 'Игра', layout.header.titleStyle)
+      .setOrigin(0.5);
+
+    this.add
+      .text(layout.screenCenterX, layout.header.subtitleY, 'КАДАСТР', layout.header.subtitleStyle)
+      .setOrigin(0.5);
+  }
+
+  drawGridFrame(layout) {
+    const padding = layout.gridFramePadding;
+    const gridContainerWidth = layout.gridContainerSize;
+    const frameWidth = gridContainerWidth + padding * 2;
+    const frameHeight = gridContainerWidth + padding * 2;
+    const frameLeft = layout.screenCenterX - frameWidth / 2;
+    const frameTop = layout.gridStartY - padding;
+
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, layout.gridFrameShadowAlpha);
+    shadow.fillRoundedRect(
+      frameLeft + layout.gridFrameShadowOffset,
+      frameTop + layout.gridFrameShadowOffset,
+      frameWidth,
+      frameHeight,
+      layout.gridFrameRadius
+    );
+    shadow.setDepth(-1);
+
+    const frame = this.add.graphics();
+    frame.fillStyle(0xF6F0E6, layout.gridFrameBackgroundAlpha);
+    frame.fillRoundedRect(frameLeft, frameTop, frameWidth, frameHeight, layout.gridFrameRadius);
+    frame.lineStyle(layout.gridFrameBorderWidth, 0x3A7CA5, 1);
+    frame.strokeRoundedRect(frameLeft, frameTop, frameWidth, frameHeight, layout.gridFrameRadius);
+  }
+
+  createPanel(config) {
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, config.shadowAlpha ?? 0.25);
+    shadow.fillRoundedRect(
+      config.containerLeft + (config.shadowOffset ?? 0),
+      config.containerTop + (config.shadowOffset ?? 0),
+      config.containerWidth,
+      config.containerHeight,
+      config.radius
+    );
+    shadow.setDepth(-1);
+
+    const container = this.add.graphics();
+    container.fillStyle(config.backgroundColor, config.backgroundAlpha ?? 1);
+    container.fillRoundedRect(
+      config.containerLeft,
+      config.containerTop,
+      config.containerWidth,
+      config.containerHeight,
+      config.radius
+    );
+    container.lineStyle(config.borderWidth ?? 3, config.borderColor, 1);
+    container.strokeRoundedRect(
+      config.containerLeft,
+      config.containerTop,
+      config.containerWidth,
+      config.containerHeight,
+      config.radius
+    );
+
+    const title = this.add.text(config.titleX, config.titleY, config.title, config.titleStyle);
+    if (config.titleOriginX !== undefined || config.titleOriginY !== undefined) {
+      title.setOrigin(config.titleOriginX ?? 0, config.titleOriginY ?? 0);
+    }
+
+    const body = this.add.text(config.bodyX, config.bodyY, config.bodyText, config.bodyStyle);
+    if (config.bodyOriginX !== undefined || config.bodyOriginY !== undefined) {
+      body.setOrigin(config.bodyOriginX ?? 0, config.bodyOriginY ?? 0);
+    }
+  }
+
+  createHintButton(layout) {
+    const config = layout.hintButton;
+    if (!config) {
+      return;
+    }
+
+    this.hintButtonConfig = config;
+    this.hintButton = this.add.graphics();
+    this.drawHintButtonState('default');
+
+    const interactiveRect = new Phaser.Geom.Rectangle(
+      config.x - config.width / 2,
+      config.y - config.height / 2,
+      config.width,
+      config.height
+    );
+
+    this.hintButton.setInteractive(interactiveRect, Phaser.Geom.Rectangle.Contains);
+    this.hintButton.on('pointerdown', () => this.useHint());
+    this.hintButton.on('pointerover', () => this.drawHintButtonState('hover'));
+    this.hintButton.on('pointerout', () => this.drawHintButtonState('default'));
+
+    const buttonLabel = config.label ?? 'Подсказка';
+    this.hintButtonLabel = this.add.text(config.x, config.y, buttonLabel, config.textStyle).setOrigin(0.5);
+  }
+
+  drawHintButtonState(state) {
+    if (!this.hintButton || !this.hintButtonConfig) {
+      return;
+    }
+
+    const config = this.hintButtonConfig;
+    const colors = state === 'hover' ? config.hoverColors : config.colors;
+
+    this.hintButton.clear();
+    this.hintButton.fillGradientStyle(colors[0], colors[1], colors[2], colors[3], 1);
+    this.hintButton.fillRoundedRect(
+      config.x - config.width / 2,
+      config.y - config.height / 2,
+      config.width,
+      config.height,
+      config.radius
+    );
+    this.hintButton.lineStyle(config.borderWidth ?? 3, config.borderColor, 1);
+    this.hintButton.strokeRoundedRect(
+      config.x - config.width / 2,
+      config.y - config.height / 2,
+      config.width,
+      config.height,
+      config.radius
+    );
+  }
+
+  createStatsSection(layout) {
+    const stats = layout.stats;
+    if (!stats) {
+      return;
+    }
+
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, stats.shadowAlpha ?? 0.25);
+    shadow.fillRoundedRect(
+      stats.containerLeft + (stats.shadowOffset ?? 0),
+      stats.containerTop + (stats.shadowOffset ?? 0),
+      stats.containerWidth,
+      stats.containerHeight,
+      stats.radius
+    );
+    shadow.setDepth(-1);
+
+    const container = this.add.graphics();
+    container.fillStyle(stats.backgroundColor, stats.backgroundAlpha ?? 1);
+    container.fillRoundedRect(
+      stats.containerLeft,
+      stats.containerTop,
+      stats.containerWidth,
+      stats.containerHeight,
+      stats.radius
+    );
+    container.lineStyle(stats.borderWidth ?? 3, stats.borderColor, 1);
+    container.strokeRoundedRect(
+      stats.containerLeft,
+      stats.containerTop,
+      stats.containerWidth,
+      stats.containerHeight,
+      stats.radius
+    );
+
+    this.add.text(stats.titleX, stats.titleY, 'СТАТИСТИКА', stats.titleStyle).setOrigin(0.5);
+
+    if (stats.mode === 'horizontal') {
+      const labelY = stats.labelY;
+      const valueY = labelY + stats.valueOffset;
+      const baseX = stats.baseX;
+      const spacing = stats.columnSpacing;
+
+      this.add.text(baseX - spacing, labelY, 'Уровень', stats.labelStyle).setOrigin(0.5);
+      this.levelText = this.add
+        .text(baseX - spacing, valueY, `1/${this.maps.length}`, stats.valueStyles.level)
+        .setOrigin(0.5);
+
+      this.add.text(baseX, labelY, 'Подсказки', stats.labelStyle).setOrigin(0.5);
+      this.hintCounterText = this.add
+        .text(baseX, valueY, '0', stats.valueStyles.hints)
+        .setOrigin(0.5);
+
+      this.add.text(baseX + spacing, labelY, 'Домов', stats.labelStyle).setOrigin(0.5);
+      this.houseCountText = this.add
+        .text(baseX + spacing, valueY, '0/8', stats.valueStyles.houses)
+        .setOrigin(0.5);
+    } else {
+      const baseX = stats.baseX;
+      const valueOffset = stats.valueOffset;
+      let rowY = stats.firstRowY;
+
+      this.add.text(baseX, rowY, 'Уровень', stats.labelStyle).setOrigin(0.5);
+      this.levelText = this.add
+        .text(baseX, rowY + valueOffset, `1/${this.maps.length}`, stats.valueStyles.level)
+        .setOrigin(0.5);
+
+      rowY += stats.rowSpacing;
+      this.add.text(baseX, rowY, 'Подсказки', stats.labelStyle).setOrigin(0.5);
+      this.hintCounterText = this.add
+        .text(baseX, rowY + valueOffset, '0', stats.valueStyles.hints)
+        .setOrigin(0.5);
+
+      rowY += stats.rowSpacing;
+      this.add.text(baseX, rowY, 'Домов', stats.labelStyle).setOrigin(0.5);
+      this.houseCountText = this.add
+        .text(baseX, rowY + valueOffset, '0/8', stats.valueStyles.houses)
+        .setOrigin(0.5);
+    }
+  }
+
+  handleOrientationChange(orientation) {
+    const newOrientation =
+      orientation === Phaser.Scale.PORTRAIT ? 'portrait' : 'landscape';
+
+    if (newOrientation === this.currentOrientation) {
+      return;
+    }
+
+    this.currentOrientation = newOrientation;
+
+    if (this.isMobile) {
+      const targetSize =
+        newOrientation === 'portrait'
+          ? { width: 1080, height: 1920 }
+          : { width: 1920, height: 1080 };
+
+      this.scale.resize(targetSize.width, targetSize.height);
+      this.scene.restart({ mapIndex: this.currentMapIndex });
+    }
   }
 
   onCellClick(cell) {
