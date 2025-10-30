@@ -4,9 +4,9 @@ import { MapParser } from '../utils/MapParser.js';
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
-    
+
     this.GRID_SIZE = 8;
-    this.CELL_SIZE = 120;
+    this.CELL_SIZE = 85;
     this.maps = [];
     this.currentMapIndex = 0;
     this.currentMap = null;
@@ -65,10 +65,12 @@ export default class GameScene extends Phaser.Scene {
 
     // Создаем кадры анимации обычного дома
     const houseColors = [0xCCCCCC, 0x999999, 0x666666, 0xFF0000];
+    const houseSize = this.CELL_SIZE - 25;
+    const houseOffset = 12;
     for (let i = 0; i < 4; i++) {
       const houseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
       houseGraphics.fillStyle(houseColors[i], 1);
-      houseGraphics.fillRect(20, 20, 80, 80);
+      houseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
       houseGraphics.generateTexture(`house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
       houseGraphics.destroy();
     }
@@ -78,7 +80,7 @@ export default class GameScene extends Phaser.Scene {
     for (let i = 0; i < 4; i++) {
       const hintHouseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
       hintHouseGraphics.fillStyle(hintHouseColors[i], 1);
-      hintHouseGraphics.fillRect(20, 20, 80, 80);
+      hintHouseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
       hintHouseGraphics.generateTexture(`hint_house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
       hintHouseGraphics.destroy();
     }
@@ -135,9 +137,9 @@ export default class GameScene extends Phaser.Scene {
 
   createGrid() {
     this.gridContainer = this.add.container(0, 0);
-    
+
     const startX = (1920 - this.GRID_SIZE * this.CELL_SIZE) / 2;
-    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 50;
+    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 80;
     
     // Создаем ячейки
     for (let row = 0; row < this.GRID_SIZE; row++) {
@@ -179,7 +181,7 @@ export default class GameScene extends Phaser.Scene {
 
   drawBorders() {
     const startX = (1920 - this.GRID_SIZE * this.CELL_SIZE) / 2;
-    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 50;
+    const startY = (1080 - this.GRID_SIZE * this.CELL_SIZE) / 2 + 80;
     
     // Горизонтальные границы
     for (let row = 0; row < this.GRID_SIZE - 1; row++) {
@@ -229,118 +231,207 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createUI() {
-    // Заголовок "Игра КАДАСТР" - каждое слово на своей строке
-    this.add.text(960, 30, 'Игра', {
-      fontSize: '48px',
+    // Заголовок "Игра КАДАСТР" - каждое слово на своей строке с улучшенным стилем
+    this.add.text(960, 25, 'Игра', {
+      fontSize: '52px',
       color: '#FFD700',
-      fontFamily: 'Arial',
-      fontStyle: 'italic bold'
+      fontFamily: 'Georgia',
+      fontStyle: 'italic bold',
+      stroke: '#8B4513',
+      strokeThickness: 4,
+      shadow: {
+        offsetX: 3,
+        offsetY: 3,
+        color: '#000000',
+        blur: 5,
+        fill: true
+      }
     }).setOrigin(0.5);
 
     this.add.text(960, 85, 'КАДАСТР', {
-      fontSize: '64px',
-      color: '#FF6347',
+      fontSize: '72px',
+      color: '#FF6B35',
       fontFamily: 'Georgia',
       fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 3
+      stroke: '#8B0000',
+      strokeThickness: 5,
+      shadow: {
+        offsetX: 4,
+        offsetY: 4,
+        color: '#000000',
+        blur: 8,
+        fill: true
+      }
     }).setOrigin(0.5);
 
     // Блок "Об игре" - левая панель
-    const aboutX = 50;
-    const aboutY = 150;
-    const aboutWidth = 350;
+    const aboutX = 80;
+    const aboutY = 180;
+    const aboutWidth = 320;
+    const aboutHeight = 720;
+
+    // Контейнер для "Об игре"
+    const aboutContainer = this.add.graphics();
+    aboutContainer.fillStyle(0x1a1a2e, 0.92);
+    aboutContainer.fillRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 15);
+    aboutContainer.lineStyle(3, 0xFFD700, 1);
+    aboutContainer.strokeRoundedRect(aboutX - 20, aboutY - 20, aboutWidth + 40, aboutHeight + 40, 15);
+
+    // Тень для контейнера
+    const aboutShadow = this.add.graphics();
+    aboutShadow.fillStyle(0x000000, 0.5);
+    aboutShadow.fillRoundedRect(aboutX - 15, aboutY - 15, aboutWidth + 40, aboutHeight + 40, 15);
+    aboutShadow.setDepth(-1);
 
     this.add.text(aboutX, aboutY, 'ОБ ИГРЕ', {
-      fontSize: '28px',
+      fontSize: '32px',
       color: '#FFD700',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#8B4513',
+      strokeThickness: 2
     });
 
     const aboutText = `Вы - работник кадастровой фирмы в выдуманном государстве. Ваша задача - спроектировать размещение 8 домов на участках коттеджного поселка.
 
 ПРАВИЛА:
-• На поле 8×8 есть участки 8 разных цветов
-• В каждом ряду и столбце должно быть по одному дому
-• Дома не могут стоять в соседних клетках (даже по диагонали)
-• В каждой цветовой зоне должен быть ровно один дом`;
+• На поле 8×8 есть участки
+  8 разных цветов
+• В каждом ряду и столбце
+  должно быть по одному дому
+• Дома не могут стоять
+  в соседних клетках
+  (даже по диагонали)
+• В каждой цветовой зоне
+  должен быть ровно один дом`;
 
-    this.add.text(aboutX, aboutY + 40, aboutText, {
-      fontSize: '16px',
-      color: '#ffffff',
+    this.add.text(aboutX, aboutY + 50, aboutText, {
+      fontSize: '17px',
+      color: '#E8E8E8',
       fontFamily: 'Arial',
       wordWrap: { width: aboutWidth },
-      lineSpacing: 5
+      lineSpacing: 6
     });
 
     // Блок "Управление" - правая панель
     const controlX = 1520;
-    const controlY = 150;
-    const controlWidth = 350;
+    const controlY = 180;
+    const controlWidth = 320;
+    const controlHeight = 720;
+
+    // Контейнер для "Управление"
+    const controlContainer = this.add.graphics();
+    controlContainer.fillStyle(0x1a1a2e, 0.92);
+    controlContainer.fillRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 15);
+    controlContainer.lineStyle(3, 0x4CAF50, 1);
+    controlContainer.strokeRoundedRect(controlX - 20, controlY - 20, controlWidth + 40, controlHeight + 40, 15);
+
+    // Тень для контейнера
+    const controlShadow = this.add.graphics();
+    controlShadow.fillStyle(0x000000, 0.5);
+    controlShadow.fillRoundedRect(controlX - 15, controlY - 15, controlWidth + 40, controlHeight + 40, 15);
+    controlShadow.setDepth(-1);
 
     this.add.text(controlX, controlY, 'УПРАВЛЕНИЕ', {
-      fontSize: '28px',
-      color: '#FFD700',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
+      fontSize: '32px',
+      color: '#4CAF50',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#2E7D32',
+      strokeThickness: 2
     });
 
-    const controlText = `• Клик по пустой ячейке - построить дом
+    const controlText = `• Клик по пустой ячейке -
+  построить дом
 • Клик по дому - снести дом
-• Клик по "X" - показывает, какой дом блокирует эту ячейку
-• Кнопка "Подсказка" - автоматически строит правильный дом
+• Клик по "X" - показывает,
+  какой дом блокирует
+  эту ячейку
+• Кнопка "Подсказка" -
+  автоматически строит
+  правильный дом
 
-Символы "X" показывают ячейки, заблокированные построенными домами. При клике на "X" все связанные с ним метки подсвечиваются желтым цветом.`;
+Символы "X" показывают ячейки, заблокированные построенными домами. При клике на "X" все связанные метки подсвечиваются желтым.`;
 
-    this.add.text(controlX, controlY + 40, controlText, {
-      fontSize: '16px',
-      color: '#ffffff',
+    this.add.text(controlX, controlY + 50, controlText, {
+      fontSize: '17px',
+      color: '#E8E8E8',
       fontFamily: 'Arial',
       wordWrap: { width: controlWidth },
-      lineSpacing: 5
+      lineSpacing: 6
     });
 
-    // Текст уровня (центр верх)
-    this.levelText = this.add.text(960, 950, `Уровень: 1/${this.maps.length}`, {
-      fontSize: '32px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-      backgroundColor: '#000000aa',
-      padding: { x: 15, y: 10 }
+    // Нижняя панель с информацией
+    const bottomPanelY = 950;
+
+    // Текст уровня
+    this.levelText = this.add.text(960, bottomPanelY, `Уровень: 1/${this.maps.length}`, {
+      fontSize: '36px',
+      color: '#FFD700',
+      fontFamily: 'Georgia',
+      fontStyle: 'bold',
+      stroke: '#8B4513',
+      strokeThickness: 3,
+      backgroundColor: '#1a1a2eee',
+      padding: { x: 20, y: 12 }
     }).setOrigin(0.5);
 
     // Счетчик подсказок
-    this.hintCounterText = this.add.text(960, 1000, `Подсказки: 0`, {
+    this.hintCounterText = this.add.text(960, bottomPanelY + 55, `Подсказки: 0`, {
       fontSize: '28px',
-      color: '#ffffff',
+      color: '#87CEEB',
       fontFamily: 'Arial',
-      backgroundColor: '#000000aa',
-      padding: { x: 15, y: 8 }
+      fontStyle: 'bold',
+      backgroundColor: '#1a1a2eee',
+      padding: { x: 18, y: 10 }
     }).setOrigin(0.5);
 
     // Счетчик домов
-    this.houseCountText = this.add.text(960, 1045, `Домов: 0/8`, {
+    this.houseCountText = this.add.text(960, bottomPanelY + 105, `Домов: 0/8`, {
+      fontSize: '28px',
+      color: '#98FB98',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+      backgroundColor: '#1a1a2eee',
+      padding: { x: 18, y: 10 }
+    }).setOrigin(0.5);
+
+    // Кнопка подсказки с улучшенным стилем
+    const hintButtonY = bottomPanelY - 60;
+    const hintButton = this.add.graphics();
+    hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
+    hintButton.fillRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+    hintButton.lineStyle(3, 0x2E7D32, 1);
+    hintButton.strokeRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+    hintButton.setInteractive(
+      new Phaser.Geom.Rectangle(860, hintButtonY - 30, 200, 60),
+      Phaser.Geom.Rectangle.Contains
+    );
+
+    const hintButtonText = this.add.text(960, hintButtonY, 'Подсказка', {
       fontSize: '28px',
       color: '#ffffff',
       fontFamily: 'Arial',
-      backgroundColor: '#000000aa',
-      padding: { x: 15, y: 8 }
-    }).setOrigin(0.5);
-
-    // Кнопка подсказки
-    const hintButton = this.add.rectangle(960, 900, 200, 50, 0x4CAF50)
-      .setInteractive({ useHandCursor: true });
-
-    const hintButtonText = this.add.text(960, 900, 'Подсказка', {
-      fontSize: '24px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
+      fontStyle: 'bold',
+      stroke: '#2E7D32',
+      strokeThickness: 2
     }).setOrigin(0.5);
 
     hintButton.on('pointerdown', () => this.useHint());
-    hintButton.on('pointerover', () => hintButton.setFillStyle(0x45a049));
-    hintButton.on('pointerout', () => hintButton.setFillStyle(0x4CAF50));
+    hintButton.on('pointerover', () => {
+      hintButton.clear();
+      hintButton.fillGradientStyle(0x77CC77, 0x77CC77, 0x5DB85D, 0x5DB85D, 1);
+      hintButton.fillRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+      hintButton.lineStyle(3, 0x2E7D32, 1);
+      hintButton.strokeRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+    });
+    hintButton.on('pointerout', () => {
+      hintButton.clear();
+      hintButton.fillGradientStyle(0x66BB6A, 0x66BB6A, 0x4CAF50, 0x4CAF50, 1);
+      hintButton.fillRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+      hintButton.lineStyle(3, 0x2E7D32, 1);
+      hintButton.strokeRoundedRect(860, hintButtonY - 30, 200, 60, 10);
+    });
   }
 
   onCellClick(cell) {
@@ -472,7 +563,7 @@ export default class GameScene extends Phaser.Scene {
           targetCell.y + this.CELL_SIZE / 2,
           'X',
           {
-            fontSize: '48px',
+            fontSize: '36px',
             color: '#ff0000',
             fontFamily: 'Arial',
             fontStyle: 'bold'
