@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import GameScene from './scenes/GameScene.js';
 import WinScene from './scenes/WinScene.js';
+import { YandexService } from './utils/YandexService.js';
 
 const MOBILE_PORTRAIT_SIZE = { width: 1080, height: 1920 };
 const MOBILE_LANDSCAPE_SIZE = { width: 1920, height: 1080 };
@@ -38,6 +39,8 @@ const config = {
 window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
 });
+
+void YandexService.init();
 
 const game = new Phaser.Game(config);
 
