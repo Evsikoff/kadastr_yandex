@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MapParser } from '../utils/MapParser.js';
 import { GameProgress } from '../utils/GameProgress.js';
+import { YandexService } from '../utils/YandexService.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -22,12 +23,27 @@ export default class GameScene extends Phaser.Scene {
     this.cellTexturesAvailable = false;
     this.baseHouseTexturesAvailable = false;
     this.correctHouseTexturesAvailable = false;
+    this.modalContainer = null;
+    this.activeModalType = null;
+    this.victoryModalContainer = null;
+    this.victoryButton = null;
+    this.victoryButtonLabel = null;
+    this.victoryButtonInteractiveRect = null;
+    this.desiredMapIndex = null;
+    this.startMapPromise = null;
+    this.visibilityChangeHandler = null;
+    this.isVictoryModalVisible = false;
+    this.isAdInProgress = false;
   }
 
   init(data = {}) {
-    // Try to load saved level from localStorage first
-    const savedLevel = GameProgress.loadLevel();
-    this.startMapIndex = data.mapIndex ?? savedLevel ?? 0;
+    this.desiredMapIndex =
+      typeof data.mapIndex === 'number' && !isNaN(data.mapIndex) ? data.mapIndex : null;
+    this.startMapPromise = GameProgress.loadLevelFromCloudOrLocal();
+    this.startMapIndex = this.desiredMapIndex ?? 0;
+
+    void YandexService.init();
+
     this.isMobile = !this.sys.game.device.os.desktop;
     this.currentOrientation =
       this.scale.orientation === Phaser.Scale.PORTRAIT ? 'portrait' : 'landscape';
@@ -288,7 +304,35 @@ export default class GameScene extends Phaser.Scene {
 
     this.createUI();
 
-    this.loadMap(this.startMapIndex);
+    const applyInitialLevel = (savedLevel) => {
+      const totalLevels = this.maps.length;
+      if (!totalLevels) {
+        return;
+      }
+
+      let targetIndex =
+        this.desiredMapIndex !== null && this.desiredMapIndex !== undefined
+          ? this.desiredMapIndex
+          : savedLevel;
+
+      if (typeof targetIndex !== 'number' || isNaN(targetIndex)) {
+        targetIndex = 0;
+      }
+
+      targetIndex = Math.min(Math.max(0, targetIndex), totalLevels - 1);
+      this.startMapIndex = targetIndex;
+      this.loadMap(this.startMapIndex);
+    };
+
+    const progressPromise = this.startMapPromise ?? Promise.resolve(null);
+    progressPromise
+      .catch((error) => {
+        console.warn('Failed to load progress from cloud storage:', error);
+        return null;
+      })
+      .then((savedLevel) => {
+        applyInitialLevel(savedLevel ?? null);
+      });
 
     this.scale.on(
       Phaser.Scale.Events.ORIENTATION_CHANGE,
@@ -302,24 +346,43 @@ export default class GameScene extends Phaser.Scene {
         this.handleOrientationChange,
         this
       );
+      if (this.visibilityChangeHandler) {
+        document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+        this.visibilityChangeHandler = null;
+      }
     });
+
+    this.visibilityChangeHandler = () => {
+      if (document.hidden) {
+        void YandexService.stopGameplay();
+      } else {
+        void YandexService.startGameplay();
+      }
+    };
+
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
   }
 
   loadMap(index) {
     // Очищаем предыдущую карту
     this.clearMap();
 
-    this.currentMapIndex = index;
-    this.currentMap = this.maps[index];
+    this.closeVictoryModal();
+
+    const maxIndex = this.maps.length ? this.maps.length - 1 : 0;
+    const clampedIndex = Math.min(Math.max(0, index), maxIndex);
+
+    this.currentMapIndex = clampedIndex;
+    this.currentMap = this.maps[clampedIndex];
     this.hintCounter = 0;
     this.houseCount = 0;
 
     // Сохраняем прогресс в localStorage
-    GameProgress.saveLevel(index);
+    GameProgress.saveLevel(clampedIndex);
 
     // Обновляем счетчик уровня
     if (this.levelText) {
-      this.levelText.setText(`${index + 1}/${this.maps.length}`);
+      this.levelText.setText(`${clampedIndex + 1}/${this.maps.length}`);
     }
 
     if (this.hintCounterText) {
@@ -328,6 +391,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Создаем сетку
     this.createGrid();
+
+    void YandexService.notifyGameReady();
+    void YandexService.startGameplay();
   }
 
   clearMap() {
@@ -1276,11 +1342,11 @@ export default class GameScene extends Phaser.Scene {
     );
 
     this.hintButton.setInteractive(interactiveRect, Phaser.Geom.Rectangle.Contains);
-    this.hintButton.on('pointerdown', () => this.useHint());
+    this.hintButton.on('pointerdown', () => this.requestHint());
     this.hintButton.on('pointerover', () => this.drawHintButtonState('hover'));
     this.hintButton.on('pointerout', () => this.drawHintButtonState('default'));
 
-    const buttonLabel = config.label ?? 'Подсказка';
+    const buttonLabel = config.label ?? 'Подсказка 📺';
     this.hintButtonLabel = this.add.text(config.x, config.y, buttonLabel, config.textStyle).setOrigin(0.5);
   }
 
@@ -1329,7 +1395,7 @@ export default class GameScene extends Phaser.Scene {
     );
 
     this.clearButton.setInteractive(interactiveRect, Phaser.Geom.Rectangle.Contains);
-    this.clearButton.on('pointerdown', () => this.clearField());
+    this.clearButton.on('pointerdown', () => this.handleClearButtonClick());
     this.clearButton.on('pointerover', () => this.drawClearButtonState('hover'));
     this.clearButton.on('pointerout', () => this.drawClearButtonState('default'));
 
@@ -1362,6 +1428,39 @@ export default class GameScene extends Phaser.Scene {
       config.height,
       config.radius
     );
+  }
+
+  async requestHint() {
+    if (this.isAdInProgress) {
+      return;
+    }
+
+    this.isAdInProgress = true;
+
+    try {
+      const result = await YandexService.showRewardedVideo();
+
+      if (result.status === 'rewarded' || result.status === 'error') {
+        this.applyHint();
+      }
+    } finally {
+      this.isAdInProgress = false;
+    }
+  }
+
+  async handleClearButtonClick() {
+    if (this.isAdInProgress) {
+      return;
+    }
+
+    this.isAdInProgress = true;
+
+    try {
+      await YandexService.showFullscreenAdv();
+    } finally {
+      this.isAdInProgress = false;
+      this.clearField();
+    }
   }
 
   createStatsSection(layout) {
@@ -1516,6 +1615,9 @@ export default class GameScene extends Phaser.Scene {
     // Закрываем текущее модальное окно, если оно открыто
     this.closeModal();
 
+    this.activeModalType = type;
+    void YandexService.stopGameplay();
+
     const width = this.screenWidth;
     const height = this.screenHeight;
     const modalWidth = Math.min(width - 100, 860);
@@ -1640,18 +1742,27 @@ export default class GameScene extends Phaser.Scene {
   }
 
   closeModal() {
-    if (this.modalContainer) {
-      this.tweens.add({
-        targets: this.modalContainer,
-        alpha: 0,
-        duration: 200,
-        ease: 'Power2',
-        onComplete: () => {
-          this.modalContainer.destroy();
-          this.modalContainer = null;
-        }
-      });
+    if (!this.modalContainer) {
+      return;
     }
+
+    const closingContainer = this.modalContainer;
+    const closingType = this.activeModalType;
+    this.modalContainer = null;
+    this.activeModalType = null;
+
+    this.tweens.add({
+      targets: closingContainer,
+      alpha: 0,
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        closingContainer.destroy();
+        if (closingType === 'about' || closingType === 'control') {
+          void YandexService.startGameplay();
+        }
+      }
+    });
   }
 
   handleOrientationChange(orientation) {
@@ -2001,7 +2112,7 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  useHint() {
+  applyHint() {
     if (this.hintCounter >= 8) {
       return;
     }
@@ -2043,7 +2154,7 @@ export default class GameScene extends Phaser.Scene {
       // Увеличиваем счетчик и повторяем алгоритм
       this.hintCounter++;
       this.hintCounterText.setText(`${this.hintCounter}`);
-      this.useHint(); // Рекурсивный вызов
+      this.applyHint(); // Рекурсивный вызов
       return;
     }
   }
@@ -2076,51 +2187,22 @@ export default class GameScene extends Phaser.Scene {
   }
 
   showVictory() {
-    // Создаем салют
+    if (this.isVictoryModalVisible) {
+      return;
+    }
+
     this.createFireworks();
-    
-    // Показываем сообщение
-    const victoryText = this.add.text(
-      960,
-      400,
-      'Уровень пройден!',
-      {
-        fontSize: '72px',
-        color: '#FFD700',
-        fontFamily: 'Arial',
-        fontStyle: 'bold'
-      }
-    ).setOrigin(0.5);
-    
-    victoryText.setScale(0);
-    this.tweens.add({
-      targets: victoryText,
-      scale: 1,
-      duration: 500,
-      ease: 'Back.easeOut'
-    });
-    
-    // Переход на следующий уровень
-    this.time.delayedCall(3000, () => {
-      victoryText.destroy();
-      
-      if (this.currentMapIndex < this.maps.length - 1) {
-        this.loadMap(this.currentMapIndex + 1);
-      } else {
-        // Все уровни пройдены
-        this.scene.start('WinScene');
-      }
-    });
+    this.showVictoryModal();
   }
 
   createFireworks() {
     const colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF];
-    
+
     for (let i = 0; i < 5; i++) {
       this.time.delayedCall(i * 400, () => {
         const x = Phaser.Math.Between(400, 1520);
         const y = Phaser.Math.Between(200, 600);
-        
+
         const particles = this.add.particles(x, y, 'cell_0', {
           speed: { min: 100, max: 300 },
           angle: { min: 0, max: 360 },
@@ -2130,11 +2212,182 @@ export default class GameScene extends Phaser.Scene {
           quantity: 30,
           blendMode: 'ADD'
         });
-        
+
         this.time.delayedCall(1000, () => {
           particles.destroy();
         });
       });
     }
+  }
+
+  showVictoryModal() {
+    if (this.victoryModalContainer) {
+      return;
+    }
+
+    this.isVictoryModalVisible = true;
+    void YandexService.stopGameplay();
+
+    const width = this.screenWidth;
+    const height = this.screenHeight;
+    const modalWidth = Math.min(width - 160, 820);
+    const modalHeight = 320;
+    const modalX = width / 2 - modalWidth / 2;
+    const modalY = height / 2 - modalHeight / 2;
+
+    this.victoryModalContainer = this.add.container(0, 0);
+    this.victoryModalContainer.setDepth(1500);
+
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.65);
+    overlay.setOrigin(0, 0);
+    overlay.setInteractive();
+    this.victoryModalContainer.add(overlay);
+
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.25);
+    shadow.fillRoundedRect(modalX + 12, modalY + 12, modalWidth, modalHeight, 22);
+    this.victoryModalContainer.add(shadow);
+
+    const modalBg = this.add.graphics();
+    modalBg.fillStyle(0xF6F0E6, 0.98);
+    modalBg.fillRoundedRect(modalX, modalY, modalWidth, modalHeight, 22);
+    modalBg.lineStyle(4, 0x3A7CA5, 1);
+    modalBg.strokeRoundedRect(modalX, modalY, modalWidth, modalHeight, 22);
+    this.victoryModalContainer.add(modalBg);
+
+    const title = this.add
+      .text(width / 2, modalY + 70, 'Уровень пройден', {
+        fontSize: '60px',
+        color: '#1B4965',
+        fontFamily: 'Georgia',
+        fontStyle: 'bold',
+        stroke: '#3A7CA5',
+        strokeThickness: 3
+      })
+      .setOrigin(0.5);
+    this.victoryModalContainer.add(title);
+
+    const buttonWidth = modalWidth - 160;
+    const buttonHeight = 80;
+    const buttonX = width / 2;
+    const buttonY = modalY + modalHeight - buttonHeight / 2 - 40;
+
+    this.victoryButton = this.add.graphics();
+    const drawVictoryButton = (state) => {
+      const colors =
+        state === 'hover'
+          ? [0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690]
+          : [0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965];
+
+      this.victoryButton.clear();
+      this.victoryButton.fillGradientStyle(colors[0], colors[1], colors[2], colors[3], 1);
+      this.victoryButton.fillRoundedRect(
+        buttonX - buttonWidth / 2,
+        buttonY - buttonHeight / 2,
+        buttonWidth,
+        buttonHeight,
+        18
+      );
+      this.victoryButton.lineStyle(3, 0x9B2226, 1);
+      this.victoryButton.strokeRoundedRect(
+        buttonX - buttonWidth / 2,
+        buttonY - buttonHeight / 2,
+        buttonWidth,
+        buttonHeight,
+        18
+      );
+    };
+
+    drawVictoryButton('default');
+    this.victoryModalContainer.add(this.victoryButton);
+
+    this.victoryButtonInteractiveRect = new Phaser.Geom.Rectangle(
+      buttonX - buttonWidth / 2,
+      buttonY - buttonHeight / 2,
+      buttonWidth,
+      buttonHeight
+    );
+
+    this.victoryButton.setInteractive(
+      this.victoryButtonInteractiveRect,
+      Phaser.Geom.Rectangle.Contains
+    );
+    this.victoryButton.on('pointerdown', () => this.handleVictoryNextButtonClick());
+    this.victoryButton.on('pointerover', () => drawVictoryButton('hover'));
+    this.victoryButton.on('pointerout', () => drawVictoryButton('default'));
+
+    this.victoryButtonLabel = this.add
+      .text(buttonX, buttonY, 'Перейти на следующий уровень', {
+        fontSize: '30px',
+        color: '#F6F0E6',
+        fontFamily: 'Arial',
+        fontStyle: 'bold',
+        stroke: '#9B2226',
+        strokeThickness: 2
+      })
+      .setOrigin(0.5);
+    this.victoryModalContainer.add(this.victoryButtonLabel);
+
+    this.victoryModalContainer.setAlpha(0);
+    this.tweens.add({
+      targets: this.victoryModalContainer,
+      alpha: 1,
+      duration: 300,
+      ease: 'Power2'
+    });
+  }
+
+  async handleVictoryNextButtonClick() {
+    if (this.isAdInProgress) {
+      return;
+    }
+
+    this.isAdInProgress = true;
+
+    if (this.victoryButton) {
+      this.victoryButton.disableInteractive();
+    }
+
+    try {
+      await YandexService.showFullscreenAdv();
+    } finally {
+      this.isAdInProgress = false;
+      this.advanceToNextLevel();
+    }
+  }
+
+  advanceToNextLevel() {
+    if (this.currentMapIndex < this.maps.length - 1) {
+      this.closeVictoryModal();
+      this.loadMap(this.currentMapIndex + 1);
+    } else {
+      this.closeVictoryModal();
+      this.scene.start('WinScene');
+    }
+  }
+
+  closeVictoryModal() {
+    if (!this.victoryModalContainer) {
+      this.isVictoryModalVisible = false;
+      return;
+    }
+
+    const container = this.victoryModalContainer;
+    this.victoryModalContainer = null;
+    this.victoryButton = null;
+    this.victoryButtonLabel = null;
+    this.victoryButtonInteractiveRect = null;
+    this.isVictoryModalVisible = false;
+
+    this.tweens.add({
+      targets: container,
+      alpha: 0,
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        container.destroy(true);
+        void YandexService.startGameplay();
+      }
+    });
   }
 }

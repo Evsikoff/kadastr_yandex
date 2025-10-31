@@ -1,4 +1,6 @@
-// Utility class for managing game progress in localStorage
+import { YandexService } from './YandexService.js';
+
+// Utility class for managing game progress in localStorage and the Yandex cloud
 export class GameProgress {
   static STORAGE_KEY = 'kadastr_game_level';
 
@@ -12,6 +14,8 @@ export class GameProgress {
     } catch (error) {
       console.warn('Failed to save game progress:', error);
     }
+
+    YandexService.setCloudData(this.STORAGE_KEY, Number(level)).catch(() => {});
   }
 
   /**
@@ -32,6 +36,26 @@ export class GameProgress {
     }
   }
 
+  static async loadLevelFromCloudOrLocal() {
+    const cloudValue = await YandexService.getCloudData(this.STORAGE_KEY);
+
+    if (cloudValue !== null && cloudValue !== undefined) {
+      const level = parseInt(cloudValue, 10);
+
+      if (!isNaN(level)) {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, level.toString());
+        } catch (error) {
+          console.warn('Failed to sync cloud progress with local storage:', error);
+        }
+
+        return level;
+      }
+    }
+
+    return this.loadLevel();
+  }
+
   /**
    * Clear the saved progress
    */
@@ -41,6 +65,8 @@ export class GameProgress {
     } catch (error) {
       console.warn('Failed to clear game progress:', error);
     }
+
+    YandexService.clearCloudData(this.STORAGE_KEY).catch(() => {});
   }
 
   /**
