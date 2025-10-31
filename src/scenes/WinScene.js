@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GameProgress } from '../utils/GameProgress.js';
 
 export default class WinScene extends Phaser.Scene {
   constructor() {
@@ -6,6 +7,9 @@ export default class WinScene extends Phaser.Scene {
   }
 
   create() {
+    // Очищаем сохраненный прогресс при завершении всех уровней
+    GameProgress.clearProgress();
+
     // Фон
     this.add.rectangle(960, 540, 1920, 1080, 0x1a1a2e);
     
@@ -50,7 +54,8 @@ export default class WinScene extends Phaser.Scene {
     ).setOrigin(0.5);
     
     restartButton.on('pointerdown', () => {
-      this.scene.start('GameScene');
+      // Начинаем игру с первого уровня
+      this.scene.start('GameScene', { mapIndex: 0 });
     });
     
     restartButton.on('pointerover', () => {
