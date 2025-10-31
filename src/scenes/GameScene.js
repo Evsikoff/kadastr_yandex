@@ -488,6 +488,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.createHintButton(this.layout);
+    this.createClearButton(this.layout);
     this.createStatsSection(this.layout);
 
     // Для mobile-portrait создаем кнопки вместо панелей
@@ -618,6 +619,31 @@ export default class GameScene extends Phaser.Scene {
         borderWidth: 3,
         colors: [0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965],
         hoverColors: [0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690],
+        textStyle: {
+          fontSize: '24px',
+          color: '#F6F0E6',
+          fontFamily: 'Arial',
+          fontStyle: 'bold',
+          stroke: '#9B2226',
+          strokeThickness: 2
+        }
+      };
+
+      const clearButtonWidth = hintButtonWidth;
+      const clearButtonHeight = 70;
+      const clearButtonX = hintButtonX;
+      const clearButtonY = hintButtonY + hintButtonHeight / 2 + 20 + clearButtonHeight / 2;
+
+      layout.clearButton = {
+        x: clearButtonX,
+        y: clearButtonY,
+        width: clearButtonWidth,
+        height: clearButtonHeight,
+        radius: 14,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        colors: [0xB56576, 0xB56576, 0x9B2226, 0x9B2226],
+        hoverColors: [0xC97585, 0xC97585, 0xAF3336, 0xAF3336],
         textStyle: {
           fontSize: '24px',
           color: '#F6F0E6',
@@ -818,6 +844,31 @@ export default class GameScene extends Phaser.Scene {
         borderWidth: 3,
         colors: [0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965],
         hoverColors: [0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690],
+        textStyle: {
+          fontSize: '22px',
+          color: '#F6F0E6',
+          fontFamily: 'Arial',
+          fontStyle: 'bold',
+          stroke: '#9B2226',
+          strokeThickness: 2
+        }
+      };
+
+      const clearButtonWidth = hintButtonWidth;
+      const clearButtonHeight = 68;
+      const clearButtonX = hintButtonX;
+      const clearButtonY = hintButtonY + hintButtonHeight / 2 + 16 + clearButtonHeight / 2;
+
+      layout.clearButton = {
+        x: clearButtonX,
+        y: clearButtonY,
+        width: clearButtonWidth,
+        height: clearButtonHeight,
+        radius: 14,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        colors: [0xB56576, 0xB56576, 0x9B2226, 0x9B2226],
+        hoverColors: [0xC97585, 0xC97585, 0xAF3336, 0xAF3336],
         textStyle: {
           fontSize: '22px',
           color: '#F6F0E6',
@@ -1054,10 +1105,33 @@ export default class GameScene extends Phaser.Scene {
         }
       };
 
+      const clearButtonY = hintButtonY + buttonHeight / 2 + buttonGap + buttonHeight / 2;
+
+      layout.clearButton = {
+        x: width / 2,
+        y: clearButtonY,
+        width: buttonWidth,
+        height: buttonHeight,
+        radius: 16,
+        borderColor: 0xB56576,
+        borderWidth: 3,
+        colors: [0xB56576, 0xB56576, 0x9B2226, 0x9B2226],
+        hoverColors: [0xC97585, 0xC97585, 0xAF3336, 0xAF3336],
+        textStyle: {
+          fontSize: '28px',
+          color: '#F6F0E6',
+          fontFamily: 'Arial',
+          fontStyle: 'bold',
+          stroke: '#9B2226',
+          strokeThickness: 2
+        }
+      };
+
       // Кнопка "Об игре"
+      const aboutButtonY = clearButtonY + buttonHeight / 2 + buttonGap + buttonHeight / 2;
       layout.aboutButton = {
         x: width / 2,
-        y: hintButtonY + buttonHeight / 2 + buttonGap + buttonHeight / 2,
+        y: aboutButtonY,
         width: buttonWidth,
         height: buttonHeight,
         radius: 16,
@@ -1078,7 +1152,7 @@ export default class GameScene extends Phaser.Scene {
       // Кнопка "Управление"
       layout.controlButton = {
         x: width / 2,
-        y: hintButtonY + buttonHeight / 2 + buttonGap + buttonHeight / 2 + buttonHeight + buttonGap,
+        y: aboutButtonY + buttonHeight / 2 + buttonGap + buttonHeight / 2,
         width: buttonWidth,
         height: buttonHeight,
         radius: 16,
@@ -1229,6 +1303,59 @@ export default class GameScene extends Phaser.Scene {
     );
     this.hintButton.lineStyle(config.borderWidth ?? 3, config.borderColor, 1);
     this.hintButton.strokeRoundedRect(
+      config.x - config.width / 2,
+      config.y - config.height / 2,
+      config.width,
+      config.height,
+      config.radius
+    );
+  }
+
+  createClearButton(layout) {
+    const config = layout.clearButton;
+    if (!config) {
+      return;
+    }
+
+    this.clearButtonConfig = config;
+    this.clearButton = this.add.graphics();
+    this.drawClearButtonState('default');
+
+    const interactiveRect = new Phaser.Geom.Rectangle(
+      config.x - config.width / 2,
+      config.y - config.height / 2,
+      config.width,
+      config.height
+    );
+
+    this.clearButton.setInteractive(interactiveRect, Phaser.Geom.Rectangle.Contains);
+    this.clearButton.on('pointerdown', () => this.clearField());
+    this.clearButton.on('pointerover', () => this.drawClearButtonState('hover'));
+    this.clearButton.on('pointerout', () => this.drawClearButtonState('default'));
+
+    const buttonLabel = config.label ?? 'Очистить поле';
+    this.clearButtonLabel = this.add.text(config.x, config.y, buttonLabel, config.textStyle).setOrigin(0.5);
+  }
+
+  drawClearButtonState(state) {
+    if (!this.clearButton || !this.clearButtonConfig) {
+      return;
+    }
+
+    const config = this.clearButtonConfig;
+    const colors = state === 'hover' ? config.hoverColors : config.colors;
+
+    this.clearButton.clear();
+    this.clearButton.fillGradientStyle(colors[0], colors[1], colors[2], colors[3], 1);
+    this.clearButton.fillRoundedRect(
+      config.x - config.width / 2,
+      config.y - config.height / 2,
+      config.width,
+      config.height,
+      config.radius
+    );
+    this.clearButton.lineStyle(config.borderWidth ?? 3, config.borderColor, 1);
+    this.clearButton.strokeRoundedRect(
       config.x - config.width / 2,
       config.y - config.height / 2,
       config.width,
@@ -1919,6 +2046,29 @@ export default class GameScene extends Phaser.Scene {
       this.useHint(); // Рекурсивный вызов
       return;
     }
+  }
+
+  clearField() {
+    // Создаем копию массива домов, чтобы избежать проблем при удалении
+    const housesToRemove = [...this.houses];
+
+    // Удаляем все дома
+    housesToRemove.forEach(({ cell }) => {
+      if (cell.house) {
+        cell.house.destroy();
+        cell.house = null;
+      }
+    });
+
+    // Очищаем массив домов
+    this.houses = [];
+
+    // Сбрасываем счетчик домов
+    this.houseCount = 0;
+    this.updateHouseCount();
+
+    // Пересчитываем заблокированные ячейки (удаляем все X-метки)
+    this.recalculateBlockedCells();
   }
 
   updateHouseCount() {
