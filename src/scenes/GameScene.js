@@ -70,15 +70,15 @@ export default class GameScene extends Phaser.Scene {
 
   preload() {
     // Загружаем файл с картами
-    this.load.text('maps', '/maps/kadastrmapsmall.txt');
+    this.load.text('maps', 'maps/kadastrmapsmall.txt');
 
     // Загружаем фоновое изображение
-    this.load.image('background', '/back.jpg');
+    this.load.image('background', 'back.jpg');
 
     // Проверяем наличие текстур ячеек и домов
     this.cellTexturesAvailable = this.checkCellTexturesAvailability();
-    this.baseHouseTexturesAvailable = this.checkHouseTexturesAvailability('/houses/base');
-    this.correctHouseTexturesAvailable = this.checkHouseTexturesAvailability('/houses/correct');
+    this.baseHouseTexturesAvailable = this.checkHouseTexturesAvailability('houses/base');
+    this.correctHouseTexturesAvailable = this.checkHouseTexturesAvailability('houses/correct');
 
     // Создаем необходимые ассеты. Если текстуры отсутствуют — генерируем заглушки
     this.createPlaceholderAssets({
@@ -108,24 +108,24 @@ export default class GameScene extends Phaser.Scene {
 
     if (this.cellTexturesAvailable) {
       for (let i = 0; i < 8; i++) {
-        this.load.image(`cell_${i}`, `/cells/cell_${i}.png`);
+        this.load.image(`cell_${i}`, `cells/cell_${i}.png`);
       }
     }
 
     if (this.baseHouseTexturesAvailable) {
       for (let i = 0; i < 4; i++) {
-        this.load.image(`house_${i}`, `/houses/base/house_${i}.png`);
+        this.load.image(`house_${i}`, `houses/base/house_${i}.png`);
       }
       // Загружаем желтый спрайт обычного дома
-      this.load.image('house_y', '/houses/base/house_y.png');
+      this.load.image('house_y', 'houses/base/house_y.png');
     }
 
     if (this.correctHouseTexturesAvailable) {
       for (let i = 0; i < 4; i++) {
-        this.load.image(`hint_house_${i}`, `/houses/correct/house_${i}.png`);
+        this.load.image(`hint_house_${i}`, `houses/correct/house_${i}.png`);
       }
       // Загружаем желтый спрайт правильного дома
-      this.load.image('hint_house_y', '/houses/correct/house_y.png');
+      this.load.image('hint_house_y', 'houses/correct/house_y.png');
     }
   }
 
@@ -219,7 +219,7 @@ export default class GameScene extends Phaser.Scene {
     try {
       for (let i = 0; i < 8; i++) {
         const request = new XMLHttpRequest();
-        request.open('HEAD', `/cells/cell_${i}.png`, false);
+        request.open('HEAD', `cells/cell_${i}.png`, false);
         request.send(null);
 
         if (request.status < 200 || request.status >= 400) {
