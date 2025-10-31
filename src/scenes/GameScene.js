@@ -711,7 +711,7 @@ export default class GameScene extends Phaser.Scene {
         }
       };
     } else if (layoutType === 'mobile-landscape') {
-      const topMargin = 130;
+      const topMargin = 170;
       const sideMargin = 40;
       const bottomGap = 18;
 
@@ -844,16 +844,17 @@ export default class GameScene extends Phaser.Scene {
         }
       };
 
-      const statsWidth = 500;
-      const statsHeight = 130;
+      // Статистика теперь справа под контейнером "Управление"
+      const statsWidth = controlWidth;
+      const statsHeight = 280;
       const statsPadding = 18;
-      const statsContentTop = layout.gridEndY + bottomGap;
-      const statsLeft = layout.screenCenterX - statsWidth / 2 - statsPadding;
+      const statsContentTop = controlTop + layout.control.containerHeight + 16;
+      const statsLeft = controlLeft;
 
       layout.stats = {
-        mode: 'horizontal',
+        mode: 'vertical',
         containerLeft: statsLeft,
-        containerTop: statsContentTop - statsPadding,
+        containerTop: statsContentTop,
         containerWidth: statsWidth + statsPadding * 2,
         containerHeight: statsHeight + statsPadding * 2,
         radius: 16,
@@ -863,8 +864,8 @@ export default class GameScene extends Phaser.Scene {
         borderWidth: 3,
         shadowAlpha: 0.22,
         shadowOffset: 12,
-        titleX: layout.screenCenterX,
-        titleY: statsContentTop + 4,
+        titleX: statsLeft + (statsWidth + statsPadding * 2) / 2,
+        titleY: statsContentTop + statsPadding + 5,
         titleStyle: {
           fontSize: '26px',
           color: '#9B2226',
@@ -873,10 +874,10 @@ export default class GameScene extends Phaser.Scene {
           stroke: '#B56576',
           strokeThickness: 2
         },
-        baseX: layout.screenCenterX,
-        labelY: statsContentTop + 46,
+        baseX: statsLeft + (statsWidth + statsPadding * 2) / 2,
+        firstRowY: statsContentTop + statsPadding + 45,
         valueOffset: 30,
-        columnSpacing: 160,
+        rowSpacing: 85,
         labelStyle: {
           fontSize: '17px',
           color: '#1B4965',
@@ -885,7 +886,7 @@ export default class GameScene extends Phaser.Scene {
         },
         valueStyles: {
           level: {
-            fontSize: '28px',
+            fontSize: '26px',
             color: '#9B2226',
             fontFamily: 'Georgia',
             fontStyle: 'bold',
@@ -893,7 +894,7 @@ export default class GameScene extends Phaser.Scene {
             strokeThickness: 2
           },
           hints: {
-            fontSize: '28px',
+            fontSize: '26px',
             color: '#3A7CA5',
             fontFamily: 'Georgia',
             fontStyle: 'bold',
@@ -901,7 +902,7 @@ export default class GameScene extends Phaser.Scene {
             strokeThickness: 2
           },
           houses: {
-            fontSize: '28px',
+            fontSize: '26px',
             color: '#3A7CA5',
             fontFamily: 'Georgia',
             fontStyle: 'bold',
