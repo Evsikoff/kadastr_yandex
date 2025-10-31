@@ -452,6 +452,11 @@ export default class GameScene extends Phaser.Scene {
 
     this.createHintButton(this.layout);
     this.createStatsSection(this.layout);
+
+    // Для mobile-portrait создаем кнопки вместо панелей
+    if (this.layout.type === 'mobile-portrait') {
+      this.createInfoButtons(this.layout, aboutText, controlText);
+    }
   }
 
   calculateLayout() {
@@ -896,9 +901,9 @@ export default class GameScene extends Phaser.Scene {
       const headerTitleY = 60;
       const headerSubtitleY = 140;
       const statsContentTop = 220;
-      const statsHeight = 200;
-      const statsPadding = 24;
-      const statsWidth = Math.min(width - 160, 640);
+      const statsHeight = 130;
+      const statsPadding = 22;
+      const statsWidth = Math.min(width - 80, 920);
 
       layout.header = {
         titleY: headerTitleY,
@@ -922,7 +927,7 @@ export default class GameScene extends Phaser.Scene {
       };
 
       layout.stats = {
-        mode: 'vertical',
+        mode: 'horizontal',
         containerLeft: width / 2 - (statsWidth + statsPadding * 2) / 2,
         containerTop: statsContentTop - statsPadding,
         containerWidth: statsWidth + statsPadding * 2,
@@ -935,9 +940,9 @@ export default class GameScene extends Phaser.Scene {
         shadowAlpha: 0.22,
         shadowOffset: 12,
         titleX: width / 2,
-        titleY: statsContentTop + 8,
+        titleY: statsContentTop + 5,
         titleStyle: {
-          fontSize: '30px',
+          fontSize: '28px',
           color: '#9B2226',
           fontFamily: 'Georgia',
           fontStyle: 'bold',
@@ -945,18 +950,18 @@ export default class GameScene extends Phaser.Scene {
           strokeThickness: 2
         },
         baseX: width / 2,
-        firstRowY: statsContentTop + 70,
-        rowSpacing: 70,
-        valueOffset: 30,
+        labelY: statsContentTop + 48,
+        valueOffset: 32,
+        columnSpacing: 280,
         labelStyle: {
-          fontSize: '20px',
+          fontSize: '18px',
           color: '#1B4965',
           fontFamily: 'Arial',
           fontStyle: 'bold'
         },
         valueStyles: {
           level: {
-            fontSize: '34px',
+            fontSize: '30px',
             color: '#9B2226',
             fontFamily: 'Georgia',
             fontStyle: 'bold',
@@ -964,7 +969,7 @@ export default class GameScene extends Phaser.Scene {
             strokeThickness: 2
           },
           hints: {
-            fontSize: '34px',
+            fontSize: '30px',
             color: '#3A7CA5',
             fontFamily: 'Georgia',
             fontStyle: 'bold',
@@ -972,7 +977,7 @@ export default class GameScene extends Phaser.Scene {
             strokeThickness: 2
           },
           houses: {
-            fontSize: '34px',
+            fontSize: '30px',
             color: '#3A7CA5',
             fontFamily: 'Georgia',
             fontStyle: 'bold',
@@ -985,60 +990,17 @@ export default class GameScene extends Phaser.Scene {
       layout.gridStartY = statsContentTop + statsHeight + 40;
       layout.gridEndY = layout.gridStartY + layout.gridContainerSize;
 
-      const aboutWidth = Math.min(width - 160, 720);
-      const aboutHeight = 420;
-      const aboutPadding = 22;
-      const aboutContentTop = layout.gridEndY + 30;
-      const aboutContainerWidth = aboutWidth + aboutPadding * 2;
-      const aboutLeft = width / 2 - aboutContainerWidth / 2;
-      const aboutTop = aboutContentTop - aboutPadding;
+      const buttonWidth = Math.min(width - 80, 920);
+      const buttonHeight = 85;
+      const buttonGap = 18;
 
-      layout.about = {
-        containerLeft: aboutLeft,
-        containerTop: aboutTop,
-        containerWidth: aboutContainerWidth,
-        containerHeight: aboutHeight + aboutPadding * 2,
-        radius: 18,
-        backgroundColor: 0xF6F0E6,
-        backgroundAlpha: 0.95,
-        borderColor: 0xB56576,
-        borderWidth: 3,
-        shadowAlpha: 0.2,
-        shadowOffset: 10,
-        titleX: width / 2,
-        titleY: aboutContentTop,
-        titleOriginX: 0.5,
-        titleOriginY: 0,
-        titleStyle: {
-          fontSize: '34px',
-          color: '#9B2226',
-          fontFamily: 'Georgia',
-          fontStyle: 'bold',
-          stroke: '#B56576',
-          strokeThickness: 2
-        },
-        bodyX: aboutLeft + aboutPadding,
-        bodyY: aboutContentTop + 60,
-        bodyStyle: {
-          fontSize: '18px',
-          color: '#2F4858',
-          fontFamily: 'Arial',
-          wordWrap: { width: aboutWidth },
-          lineSpacing: 5
-        }
-      };
-
-      const hintButtonWidth = aboutContainerWidth;
-      const hintButtonHeight = 90;
-      const hintButtonX = width / 2;
-      const hintButtonY =
-        aboutTop + layout.about.containerHeight + hintButtonHeight / 2 + 24;
+      const hintButtonY = layout.gridEndY + buttonHeight / 2 + 30;
 
       layout.hintButton = {
-        x: hintButtonX,
+        x: width / 2,
         y: hintButtonY,
-        width: hintButtonWidth,
-        height: hintButtonHeight,
+        width: buttonWidth,
+        height: buttonHeight,
         radius: 16,
         borderColor: 0x9B2226,
         borderWidth: 3,
@@ -1054,48 +1016,50 @@ export default class GameScene extends Phaser.Scene {
         }
       };
 
-      const controlWidth = aboutWidth;
-      const controlHeight = 360;
-      const controlPadding = 22;
-      const controlContentTop = hintButtonY + hintButtonHeight / 2 + 24;
-      const controlContainerWidth = controlWidth + controlPadding * 2;
-      const controlLeft = width / 2 - controlContainerWidth / 2;
-      const controlTop = controlContentTop - controlPadding;
-
-      layout.control = {
-        containerLeft: controlLeft,
-        containerTop: controlTop,
-        containerWidth: controlContainerWidth,
-        containerHeight: controlHeight + controlPadding * 2,
-        radius: 18,
-        backgroundColor: 0xF6F0E6,
-        backgroundAlpha: 0.95,
-        borderColor: 0x3A7CA5,
+      // Кнопка "Об игре"
+      layout.aboutButton = {
+        x: width / 2,
+        y: hintButtonY + buttonHeight / 2 + buttonGap + buttonHeight / 2,
+        width: buttonWidth,
+        height: buttonHeight,
+        radius: 16,
+        borderColor: 0xB56576,
         borderWidth: 3,
-        shadowAlpha: 0.2,
-        shadowOffset: 10,
-        titleX: width / 2,
-        titleY: controlContentTop,
-        titleOriginX: 0.5,
-        titleOriginY: 0,
-        titleStyle: {
-          fontSize: '32px',
-          color: '#1B4965',
-          fontFamily: 'Georgia',
-          fontStyle: 'bold',
-          stroke: '#3A7CA5',
-          strokeThickness: 2
-        },
-        bodyX: controlLeft + controlPadding,
-        bodyY: controlContentTop + 60,
-        bodyStyle: {
-          fontSize: '18px',
-          color: '#2F4858',
+        colors: [0xB56576, 0xB56576, 0x9B2226, 0x9B2226],
+        hoverColors: [0xC97585, 0xC97585, 0xAF3336, 0xAF3336],
+        textStyle: {
+          fontSize: '28px',
+          color: '#F6F0E6',
           fontFamily: 'Arial',
-          wordWrap: { width: controlWidth },
-          lineSpacing: 5
+          fontStyle: 'bold',
+          stroke: '#9B2226',
+          strokeThickness: 2
         }
       };
+
+      // Кнопка "Управление"
+      layout.controlButton = {
+        x: width / 2,
+        y: hintButtonY + buttonHeight / 2 + buttonGap + buttonHeight / 2 + buttonHeight + buttonGap,
+        width: buttonWidth,
+        height: buttonHeight,
+        radius: 16,
+        borderColor: 0x3A7CA5,
+        borderWidth: 3,
+        colors: [0x3A7CA5, 0x3A7CA5, 0x1B4965, 0x1B4965],
+        hoverColors: [0x4F8FBF, 0x4F8FBF, 0x2F6690, 0x2F6690],
+        textStyle: {
+          fontSize: '28px',
+          color: '#F6F0E6',
+          fontFamily: 'Arial',
+          fontStyle: 'bold',
+          stroke: '#1B4965',
+          strokeThickness: 2
+        }
+      };
+
+      // Не создаем about и control панели для mobile-portrait
+      // Они будут показываться как модальные окна
     }
 
     return layout;
@@ -1313,6 +1277,215 @@ export default class GameScene extends Phaser.Scene {
       this.houseCountText = this.add
         .text(baseX, rowY + valueOffset, '0/8', stats.valueStyles.houses)
         .setOrigin(0.5);
+    }
+  }
+
+  createInfoButtons(layout, aboutText, controlText) {
+    // Сохраняем тексты для модальных окон
+    this.aboutText = aboutText;
+    this.controlText = controlText;
+
+    // Создаем кнопку "Об игре"
+    if (layout.aboutButton) {
+      this.createButton(
+        layout.aboutButton,
+        'Об игре',
+        () => this.showModal('about')
+      );
+    }
+
+    // Создаем кнопку "Управление"
+    if (layout.controlButton) {
+      this.createButton(
+        layout.controlButton,
+        'Управление',
+        () => this.showModal('control')
+      );
+    }
+  }
+
+  createButton(config, label, onClick) {
+    const button = this.add.graphics();
+
+    const drawButton = (state) => {
+      const colors = state === 'hover' ? config.hoverColors : config.colors;
+      button.clear();
+      button.fillGradientStyle(colors[0], colors[1], colors[2], colors[3], 1);
+      button.fillRoundedRect(
+        config.x - config.width / 2,
+        config.y - config.height / 2,
+        config.width,
+        config.height,
+        config.radius
+      );
+      button.lineStyle(config.borderWidth ?? 3, config.borderColor, 1);
+      button.strokeRoundedRect(
+        config.x - config.width / 2,
+        config.y - config.height / 2,
+        config.width,
+        config.height,
+        config.radius
+      );
+    };
+
+    drawButton('default');
+
+    const interactiveRect = new Phaser.Geom.Rectangle(
+      config.x - config.width / 2,
+      config.y - config.height / 2,
+      config.width,
+      config.height
+    );
+
+    button.setInteractive(interactiveRect, Phaser.Geom.Rectangle.Contains);
+    button.on('pointerdown', onClick);
+    button.on('pointerover', () => drawButton('hover'));
+    button.on('pointerout', () => drawButton('default'));
+
+    const buttonLabel = this.add.text(config.x, config.y, label, config.textStyle).setOrigin(0.5);
+
+    return { button, label: buttonLabel };
+  }
+
+  showModal(type) {
+    // Закрываем текущее модальное окно, если оно открыто
+    this.closeModal();
+
+    const width = this.screenWidth;
+    const height = this.screenHeight;
+    const modalWidth = Math.min(width - 100, 860);
+    const modalHeight = Math.min(height - 200, 1000);
+    const modalX = width / 2 - modalWidth / 2;
+    const modalY = height / 2 - modalHeight / 2;
+
+    // Создаем контейнер для модального окна
+    this.modalContainer = this.add.container(0, 0);
+    this.modalContainer.setDepth(1000);
+
+    // Полупрозрачный фон
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
+    overlay.setOrigin(0, 0);
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => this.closeModal());
+    this.modalContainer.add(overlay);
+
+    // Тень модального окна
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.3);
+    shadow.fillRoundedRect(modalX + 15, modalY + 15, modalWidth, modalHeight, 20);
+    this.modalContainer.add(shadow);
+
+    // Основной фон модального окна
+    const modalBg = this.add.graphics();
+    modalBg.fillStyle(0xF6F0E6, 0.98);
+    modalBg.fillRoundedRect(modalX, modalY, modalWidth, modalHeight, 20);
+
+    const borderColor = type === 'about' ? 0xB56576 : 0x3A7CA5;
+    modalBg.lineStyle(4, borderColor, 1);
+    modalBg.strokeRoundedRect(modalX, modalY, modalWidth, modalHeight, 20);
+    this.modalContainer.add(modalBg);
+
+    // Заголовок
+    const title = type === 'about' ? 'ОБ ИГРЕ' : 'УПРАВЛЕНИЕ';
+    const titleColor = type === 'about' ? '#9B2226' : '#1B4965';
+    const titleStroke = type === 'about' ? '#B56576' : '#3A7CA5';
+
+    const titleText = this.add.text(
+      width / 2,
+      modalY + 40,
+      title,
+      {
+        fontSize: '36px',
+        color: titleColor,
+        fontFamily: 'Georgia',
+        fontStyle: 'bold',
+        stroke: titleStroke,
+        strokeThickness: 2
+      }
+    ).setOrigin(0.5, 0);
+    this.modalContainer.add(titleText);
+
+    // Контент
+    const contentText = type === 'about' ? this.aboutText : this.controlText;
+    const bodyText = this.add.text(
+      modalX + 30,
+      modalY + 100,
+      contentText,
+      {
+        fontSize: '20px',
+        color: '#2F4858',
+        fontFamily: 'Arial',
+        wordWrap: { width: modalWidth - 60 },
+        lineSpacing: 6
+      }
+    );
+    this.modalContainer.add(bodyText);
+
+    // Кнопка закрытия (крестик)
+    const closeButtonSize = 50;
+    const closeX = modalX + modalWidth - closeButtonSize - 15;
+    const closeY = modalY + 15;
+
+    const closeBg = this.add.graphics();
+    closeBg.fillStyle(0xFF0000, 0.8);
+    closeBg.fillCircle(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, closeButtonSize / 2);
+    closeBg.lineStyle(3, 0x9B2226, 1);
+    closeBg.strokeCircle(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, closeButtonSize / 2);
+
+    const closeCircle = new Phaser.Geom.Circle(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, closeButtonSize / 2);
+    closeBg.setInteractive(closeCircle, Phaser.Geom.Circle.Contains);
+    closeBg.on('pointerdown', () => this.closeModal());
+    closeBg.on('pointerover', () => {
+      closeBg.clear();
+      closeBg.fillStyle(0xFF4444, 0.9);
+      closeBg.fillCircle(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, closeButtonSize / 2);
+      closeBg.lineStyle(3, 0x9B2226, 1);
+      closeBg.strokeCircle(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, closeButtonSize / 2);
+    });
+    closeBg.on('pointerout', () => {
+      closeBg.clear();
+      closeBg.fillStyle(0xFF0000, 0.8);
+      closeBg.fillCircle(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, closeButtonSize / 2);
+      closeBg.lineStyle(3, 0x9B2226, 1);
+      closeBg.strokeCircle(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, closeButtonSize / 2);
+    });
+    this.modalContainer.add(closeBg);
+
+    const closeText = this.add.text(
+      closeX + closeButtonSize / 2,
+      closeY + closeButtonSize / 2,
+      'X',
+      {
+        fontSize: '32px',
+        color: '#FFFFFF',
+        fontFamily: 'Arial',
+        fontStyle: 'bold'
+      }
+    ).setOrigin(0.5);
+    this.modalContainer.add(closeText);
+
+    // Анимация появления
+    this.modalContainer.setAlpha(0);
+    this.tweens.add({
+      targets: this.modalContainer,
+      alpha: 1,
+      duration: 300,
+      ease: 'Power2'
+    });
+  }
+
+  closeModal() {
+    if (this.modalContainer) {
+      this.tweens.add({
+        targets: this.modalContainer,
+        alpha: 0,
+        duration: 200,
+        ease: 'Power2',
+        onComplete: () => {
+          this.modalContainer.destroy();
+          this.modalContainer = null;
+        }
+      });
     }
   }
 
