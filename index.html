@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Игра Кадастр</title>
   <style>
     * {
@@ -203,25 +204,6 @@
     });
   </script>
 
-  <script type="module">
-    (async () => {
-      const ysdkScript = document.createElement('script');
-      const appId = import.meta.env.VITE_YANDEX_GAME_APP_ID;
-      ysdkScript.src = appId
-        ? `https://yandex.ru/games/sdk/v2?app-id=${appId}`
-        : 'https://yandex.ru/games/sdk/v2';
-      ysdkScript.async = false;
-
-      const scriptLoaded = new Promise((resolve) => {
-        ysdkScript.addEventListener('load', resolve, { once: true });
-        ysdkScript.addEventListener('error', resolve, { once: true });
-      });
-
-      document.head.appendChild(ysdkScript);
-
-      await scriptLoaded;
-      await import('./src/main.js');
-    })();
-  </script>
+  <script type="module" src="src/bootstrap.js"></script>
 </body>
 </html>
