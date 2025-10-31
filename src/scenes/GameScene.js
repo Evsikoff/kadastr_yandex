@@ -711,7 +711,7 @@ export default class GameScene extends Phaser.Scene {
         }
       };
     } else if (layoutType === 'mobile-landscape') {
-      const topMargin = 150;
+      const topMargin = 170;
       const sideMargin = 40;
       const bottomGap = 18;
 
