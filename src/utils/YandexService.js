@@ -36,6 +36,14 @@ class YandexServiceClass {
     return this.ysdkPromise;
   }
 
+  getLanguage() {
+    if (!this.ysdk?.environment?.i18n?.lang) {
+      return 'ru'; // Default to Russian if not available
+    }
+
+    return this.ysdk.environment.i18n.lang;
+  }
+
   async setDefaultLanguage() {
     if (!this.ysdk?.environment?.i18n) {
       return;
@@ -43,11 +51,20 @@ class YandexServiceClass {
 
     try {
       const { i18n } = this.ysdk.environment;
+      const currentLang = this.getLanguage();
 
-      if (typeof i18n.setLang === 'function') {
-        i18n.setLang('ru');
-      } else if (typeof i18n.changeLang === 'function') {
-        await i18n.changeLang('ru');
+      console.log('Auto-detected language:', currentLang);
+
+      // Always ensure Russian is set as the game language
+      if (currentLang !== 'ru') {
+        console.log('Setting language to Russian');
+        if (typeof i18n.setLang === 'function') {
+          i18n.setLang('ru');
+        } else if (typeof i18n.changeLang === 'function') {
+          await i18n.changeLang('ru');
+        }
+      } else {
+        console.log('Language is already set to Russian');
       }
     } catch (error) {
       console.warn('Failed to set default language to Russian:', error);
