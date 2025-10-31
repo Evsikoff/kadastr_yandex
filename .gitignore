@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Archives for Yandex Games
+*.zip
+
 # Environment variables
 .env
 .env.local
