@@ -1,5 +1,5 @@
 const SDK_BASE_URL = 'https://yandex.ru/games/sdk/v2';
-const appId = import.meta.env.VITE_YANDEX_GAME_APP_ID;
+const appId = import.meta.env?.VITE_YANDEX_GAME_APP_ID;
 
 function buildSdkUrl(baseUrl, appIdValue) {
   if (!appIdValue) {
