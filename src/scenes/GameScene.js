@@ -100,12 +100,16 @@ export default class GameScene extends Phaser.Scene {
       for (let i = 0; i < 4; i++) {
         this.load.image(`house_${i}`, `/houses/base/house_${i}.png`);
       }
+      // Загружаем желтый спрайт обычного дома
+      this.load.image('house_y', '/houses/base/house_y.png');
     }
 
     if (this.correctHouseTexturesAvailable) {
       for (let i = 0; i < 4; i++) {
         this.load.image(`hint_house_${i}`, `/houses/correct/house_${i}.png`);
       }
+      // Загружаем желтый спрайт правильного дома
+      this.load.image('hint_house_y', '/houses/correct/house_y.png');
     }
   }
 
@@ -162,6 +166,13 @@ export default class GameScene extends Phaser.Scene {
         houseGraphics.generateTexture(`house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
         houseGraphics.destroy();
       }
+
+      // Создаем желтый спрайт обычного дома
+      const yellowHouseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+      yellowHouseGraphics.fillStyle(0xFFFF00, 1);
+      yellowHouseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
+      yellowHouseGraphics.generateTexture('house_y', this.CELL_SIZE, this.CELL_SIZE);
+      yellowHouseGraphics.destroy();
     }
 
     if (includeHintHousePlaceholders) {
@@ -174,6 +185,13 @@ export default class GameScene extends Phaser.Scene {
         hintHouseGraphics.generateTexture(`hint_house_${i}`, this.CELL_SIZE, this.CELL_SIZE);
         hintHouseGraphics.destroy();
       }
+
+      // Создаем желтый спрайт правильного дома
+      const yellowHintHouseGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+      yellowHintHouseGraphics.fillStyle(0xFFFF00, 1);
+      yellowHintHouseGraphics.fillRect(houseOffset, houseOffset, houseSize, houseSize);
+      yellowHintHouseGraphics.generateTexture('hint_house_y', this.CELL_SIZE, this.CELL_SIZE);
+      yellowHintHouseGraphics.destroy();
     }
   }
 
@@ -1837,6 +1855,23 @@ export default class GameScene extends Phaser.Scene {
         xMark.setColor(originalColor);
       });
     });
+
+    // Заменяем спрайт дома на желтый
+    if (houseCell.house) {
+      const house = houseCell.house;
+      const originalTexture = house.texture.key;
+
+      // Определяем желтый спрайт в зависимости от типа дома
+      const yellowTexture = house.isHintHouse ? 'hint_house_y' : 'house_y';
+
+      // Меняем текстуру на желтую
+      house.setTexture(yellowTexture);
+
+      // Через 0.5 секунды возвращаем исходную текстуру
+      this.time.delayedCall(500, () => {
+        house.setTexture(originalTexture);
+      });
+    }
   }
 
   useHint() {
