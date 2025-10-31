@@ -30,7 +30,20 @@ export default class GameScene extends Phaser.Scene {
       this.scale.orientation === Phaser.Scale.PORTRAIT ? 'portrait' : 'landscape';
 
     if (this.isMobile) {
-      this.CELL_SIZE = this.currentOrientation === 'portrait' ? 70 : 80;
+      if (this.currentOrientation === 'portrait') {
+        // Вычисляем CELL_SIZE так, чтобы игровое поле было равно по ширине контейнеру статистики
+        const screenWidth = this.scale.gameSize.width;
+        const statsWidth = Math.min(screenWidth - 80, 920);
+        const statsPadding = 22;
+        const gridPadding = 16;
+
+        // Целевая ширина контейнера сетки = ширина контейнера статистики
+        const targetGridContainerSize = statsWidth + statsPadding * 2;
+        const gridSize = targetGridContainerSize - gridPadding * 2;
+        this.CELL_SIZE = Math.floor(gridSize / this.GRID_SIZE);
+      } else {
+        this.CELL_SIZE = 80;
+      }
     } else {
       this.CELL_SIZE = 85;
     }
