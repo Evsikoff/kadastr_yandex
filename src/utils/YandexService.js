@@ -219,11 +219,12 @@ class YandexServiceClass {
             },
             onRewarded: () => {
               rewarded = true;
-              finalize('rewarded');
             },
             onClose: () => {
               void this.startGameplay();
-              if (!rewarded) {
+              if (rewarded) {
+                finalize('rewarded');
+              } else {
                 finalize('closed');
               }
             },

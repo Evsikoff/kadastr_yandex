@@ -1440,7 +1440,7 @@ export default class GameScene extends Phaser.Scene {
     try {
       const result = await YandexService.showRewardedVideo();
 
-      if (result.status === 'rewarded' || result.status === 'error') {
+      if (result.status === 'rewarded') {
         this.applyHint();
       }
     } finally {
