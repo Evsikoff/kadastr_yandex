@@ -169,28 +169,22 @@ class YandexServiceClass {
         }
       };
 
-      ysdk.adv
-        .showFullscreenAdv({
-          callbacks: {
-            onOpen: () => {
-              void this.stopGameplay();
-            },
-            onClose: (wasShown) => {
-              void this.startGameplay();
-              finalize('closed', { wasShown });
-            },
-            onError: (error) => {
-              console.warn('Fullscreen ad error:', error);
-              void this.startGameplay();
-              finalize('error', { error });
-            }
+      ysdk.adv.showFullscreenAdv({
+        callbacks: {
+          onOpen: () => {
+            void this.stopGameplay();
+          },
+          onClose: (wasShown) => {
+            void this.startGameplay();
+            finalize('closed', { wasShown });
+          },
+          onError: (error) => {
+            console.warn('Fullscreen ad error:', error);
+            void this.startGameplay();
+            finalize('error', { error });
           }
-        })
-        .catch((error) => {
-          console.warn('Failed to show fullscreen ad:', error);
-          void this.startGameplay();
-          finalize('error', { error });
-        });
+        }
+      });
     });
   }
 
@@ -211,35 +205,29 @@ class YandexServiceClass {
         }
       };
 
-      ysdk.adv
-        .showRewardedVideo({
-          callbacks: {
-            onOpen: () => {
-              void this.stopGameplay();
-            },
-            onRewarded: () => {
-              rewarded = true;
-            },
-            onClose: () => {
-              void this.startGameplay();
-              if (rewarded) {
-                finalize('rewarded');
-              } else {
-                finalize('closed');
-              }
-            },
-            onError: (error) => {
-              console.warn('Rewarded ad error:', error);
-              void this.startGameplay();
-              finalize('error', { error });
+      ysdk.adv.showRewardedVideo({
+        callbacks: {
+          onOpen: () => {
+            void this.stopGameplay();
+          },
+          onRewarded: () => {
+            rewarded = true;
+          },
+          onClose: () => {
+            void this.startGameplay();
+            if (rewarded) {
+              finalize('rewarded');
+            } else {
+              finalize('closed');
             }
+          },
+          onError: (error) => {
+            console.warn('Rewarded ad error:', error);
+            void this.startGameplay();
+            finalize('error', { error });
           }
-        })
-        .catch((error) => {
-          console.warn('Failed to show rewarded video:', error);
-          void this.startGameplay();
-          finalize('error', { error });
-        });
+        }
+      });
     });
   }
 }
