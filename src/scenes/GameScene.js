@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MapParser } from '../utils/MapParser.js';
+import { GameProgress } from '../utils/GameProgress.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -24,7 +25,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   init(data = {}) {
-    this.startMapIndex = data.mapIndex ?? 0;
+    // Try to load saved level from localStorage first
+    const savedLevel = GameProgress.loadLevel();
+    this.startMapIndex = data.mapIndex ?? savedLevel ?? 0;
     this.isMobile = !this.sys.game.device.os.desktop;
     this.currentOrientation =
       this.scale.orientation === Phaser.Scale.PORTRAIT ? 'portrait' : 'landscape';
@@ -287,12 +290,15 @@ export default class GameScene extends Phaser.Scene {
   loadMap(index) {
     // Очищаем предыдущую карту
     this.clearMap();
-    
+
     this.currentMapIndex = index;
     this.currentMap = this.maps[index];
     this.hintCounter = 0;
     this.houseCount = 0;
-    
+
+    // Сохраняем прогресс в localStorage
+    GameProgress.saveLevel(index);
+
     // Обновляем счетчик уровня
     if (this.levelText) {
       this.levelText.setText(`${index + 1}/${this.maps.length}`);
@@ -301,7 +307,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.hintCounterText) {
       this.hintCounterText.setText(`${this.hintCounter}`);
     }
-    
+
     // Создаем сетку
     this.createGrid();
   }
