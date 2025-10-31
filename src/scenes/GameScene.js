@@ -21,6 +21,10 @@ export default class GameScene extends Phaser.Scene {
     this.cellTexturesAvailable = false;
     this.baseHouseTexturesAvailable = false;
     this.correctHouseTexturesAvailable = false;
+    this.loadingOverlay = null;
+    this.loadingProgressBar = null;
+    this.loadingProgressText = null;
+    this.loadingSpark = null;
   }
 
   init(data = {}) {
@@ -37,6 +41,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   preload() {
+    this.createLoadingScreen();
+
     // Загружаем файл с картами
     this.load.text('maps', '/maps/kadastrmapsmall.txt');
 
@@ -73,6 +79,13 @@ export default class GameScene extends Phaser.Scene {
         });
       });
     }
+
+    this.load.on(Phaser.Loader.Events.PROGRESS, this.updateLoadingProgress, this);
+
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      this.load.off(Phaser.Loader.Events.PROGRESS, this.updateLoadingProgress, this);
+      this.time.delayedCall(300, () => this.hideLoadingScreen());
+    });
 
     if (this.cellTexturesAvailable) {
       for (let i = 0; i < 8; i++) {
@@ -268,6 +281,160 @@ export default class GameScene extends Phaser.Scene {
         this.handleOrientationChange,
         this
       );
+    });
+  }
+
+  createLoadingScreen() {
+    const { width, height } = this.scale.gameSize;
+
+    const overlayContainer = this.add.container(0, 0);
+    overlayContainer.setDepth(1000);
+
+    const gradient = this.add.graphics();
+    gradient.fillGradientStyle(0x162447, 0x1f4068, 0x1b1b2f, 0x0f3460, 1, 1, 1, 1);
+    gradient.fillRect(0, 0, width, height);
+    gradient.setAlpha(0.92);
+    overlayContainer.add(gradient);
+
+    const vignette = this.add.graphics();
+    vignette.fillStyle(0x000000, 0.35);
+    vignette.fillCircle(0, 0, Math.max(width, height));
+    vignette.x = width / 2;
+    vignette.y = height / 2;
+    overlayContainer.add(vignette);
+
+    const centerContainer = this.add.container(width / 2, height / 2);
+    overlayContainer.add(centerContainer);
+
+    const title = this.add.text(0, -height * 0.2, 'Кадастровая мозаика', {
+      fontFamily: '"Montserrat", sans-serif',
+      fontSize: `${Math.round(height * 0.045)}px`,
+      color: '#f9f7f7',
+      fontStyle: '700',
+      align: 'center',
+      shadow: {
+        offsetX: 0,
+        offsetY: 0,
+        color: '#00d4ff',
+        blur: 24,
+        fill: true
+      }
+    });
+    title.setOrigin(0.5);
+    centerContainer.add(title);
+
+    this.tweens.add({
+      targets: title,
+      alpha: { from: 0.7, to: 1 },
+      duration: 1800,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1
+    });
+
+    const subtitle = this.add.text(0, -height * 0.12, 'Загружаем уникальные участки...', {
+      fontFamily: '"Montserrat", sans-serif',
+      fontSize: `${Math.round(height * 0.022)}px`,
+      color: '#dde7ff',
+      align: 'center'
+    });
+    subtitle.setOrigin(0.5);
+    centerContainer.add(subtitle);
+
+    const frameWidth = Math.min(width * 0.55, 620);
+    const frameHeight = Math.max(height * 0.018, 20);
+
+    const progressFrame = this.add.graphics();
+    progressFrame.lineStyle(3, 0xffffff, 0.45);
+    progressFrame.strokeRoundedRect(-frameWidth / 2, -frameHeight / 2, frameWidth, frameHeight, 16);
+    progressFrame.fillStyle(0x0f3460, 0.65);
+    progressFrame.fillRoundedRect(-frameWidth / 2, -frameHeight / 2, frameWidth, frameHeight, 16);
+    centerContainer.add(progressFrame);
+
+    this.loadingProgressBar = this.add.graphics();
+    centerContainer.add(this.loadingProgressBar);
+
+    this.loadingProgressText = this.add.text(0, frameHeight, '0%', {
+      fontFamily: '"Montserrat", sans-serif',
+      fontSize: `${Math.round(height * 0.024)}px`,
+      color: '#ffffff',
+      align: 'center'
+    });
+    this.loadingProgressText.setOrigin(0.5, -0.6);
+    centerContainer.add(this.loadingProgressText);
+
+    const tips = [
+      'Совет: следите за границами регионов — они помогут найти верное решение.',
+      'Факт: каждая карта — уникальная, как настоящий кадастровый план.',
+      'Подсказка: используйте подсказки разумно, чтобы сохранить больше наград.'
+    ];
+
+    const tipText = this.add.text(0, frameHeight * 2.2, Phaser.Utils.Array.GetRandom(tips), {
+      fontFamily: '"Montserrat", sans-serif',
+      fontSize: `${Math.round(height * 0.018)}px`,
+      color: '#9fb8ff',
+      align: 'center',
+      wordWrap: { width: frameWidth * 0.95 }
+    });
+    tipText.setOrigin(0.5, 0);
+    centerContainer.add(tipText);
+
+    const spark = this.add.ellipse(-frameWidth / 2, 0, frameHeight, frameHeight, 0x43c6ff, 0.95);
+    spark.setOrigin(0.5);
+    centerContainer.add(spark);
+    this.loadingSpark = spark;
+
+    this.tweens.add({
+      targets: spark,
+      scale: { from: 0.8, to: 1.2 },
+      alpha: { from: 0.6, to: 1 },
+      duration: 900,
+      yoyo: true,
+      repeat: -1
+    });
+
+    this.loadingOverlay = overlayContainer;
+  }
+
+  updateLoadingProgress(value) {
+    if (!this.loadingProgressBar) {
+      return;
+    }
+
+    const { width } = this.scale.gameSize;
+    const barMaxWidth = Math.min(width * 0.55, 620) - 16;
+    const filledWidth = Phaser.Math.Linear(0, barMaxWidth, value);
+
+    this.loadingProgressBar.clear();
+    this.loadingProgressBar.fillStyle(0x4facfe, 0.95);
+    this.loadingProgressBar.fillRoundedRect(-barMaxWidth / 2, -12, filledWidth, 24, 12);
+
+    if (this.loadingProgressText) {
+      this.loadingProgressText.setText(`${Math.round(value * 100)}%`);
+    }
+
+    if (this.loadingSpark) {
+      this.loadingSpark.x = -barMaxWidth / 2 + filledWidth;
+    }
+  }
+
+  hideLoadingScreen() {
+    if (!this.loadingOverlay) {
+      return;
+    }
+
+    this.tweens.add({
+      targets: this.loadingOverlay,
+      alpha: 0,
+      duration: 600,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.loadingOverlay.destroy();
+        this.loadingOverlay = null;
+        this.loadingProgressBar = null;
+        this.loadingProgressText = null;
+        this.loadingSpark = null;
+      }
     });
   }
 
