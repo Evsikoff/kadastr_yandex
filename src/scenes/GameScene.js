@@ -1360,8 +1360,12 @@ export default class GameScene extends Phaser.Scene {
     const frames = [`${prefix}_0`, `${prefix}_1`, `${prefix}_2`, `${prefix}_3`];
     let frameIndex = 0;
 
-    const house = this.add.image(cell.x, cell.y, frames[0]);
-    house.setOrigin(0, 0);
+    const house = this.add.image(
+      cell.x + this.CELL_SIZE / 2,
+      cell.y + this.CELL_SIZE / 2,
+      frames[0]
+    );
+    house.setOrigin(0.5, 0.5);
     house.setAlpha(0);
     house.isHintHouse = isHintHouse;
 
