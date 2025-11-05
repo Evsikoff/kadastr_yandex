@@ -36,6 +36,7 @@ const config = {
 };
 
 const markLoadingScreenAsHidden = () => {
+  console.log('Завершён показ загрузочного экрана.');
   void YandexService.markLoadingScreenHidden();
 };
 
