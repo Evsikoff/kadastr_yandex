@@ -152,7 +152,7 @@ class YandexServiceClass {
     }
 
     try {
-      console.log('Первый вызов ysdk.features.GameplayAPI.start()');
+      console.log('Вызов ysdk.features.GameplayAPI.start()');
       ysdk.features.GameplayAPI.start();
     } catch (error) {
       console.warn('Failed to start GameplayAPI:', error);
