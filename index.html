@@ -5,16 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Игра Кадастр</title>
+  <script src="https://yandex.ru/games/sdk/v2"></script>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      /* Отключаем выделение текста на всех элементах */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      /* Отключаем касания для контекстного меню */
+      -webkit-touch-callout: none;
+      /* Отключаем выделение при долгом нажатии */
+      -webkit-tap-highlight-color: transparent;
     }
 
     html,
     body {
       height: 100%;
+      /* Отключаем скроллинг при касании */
+      overscroll-behavior: none;
+      /* Отключаем действия по умолчанию при касании */
+      touch-action: manipulation;
     }
 
     body {
@@ -38,6 +52,20 @@
     #game-container {
       display: inline-flex;
       position: relative;
+      /* Дополнительная защита от выделения в контейнере игры */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+      touch-action: none;
+    }
+
+    /* Отключаем выделение для canvas */
+    canvas {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     /* Loading Screen Styles */

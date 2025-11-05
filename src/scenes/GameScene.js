@@ -1249,11 +1249,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.add
-      .text(layout.screenCenterX, layout.header.titleY, 'Игра', layout.header.titleStyle)
-      .setOrigin(0.5);
-
-    this.add
-      .text(layout.screenCenterX, layout.header.subtitleY, 'КАДАСТР', layout.header.subtitleStyle)
+      .text(layout.screenCenterX, layout.header.titleY, 'КАДАСТР', layout.header.subtitleStyle)
       .setOrigin(0.5);
   }
 
