@@ -35,6 +35,7 @@ export default class GameScene extends Phaser.Scene {
     this.isVictoryModalVisible = false;
     this.isAdInProgress = false;
     this.gameplayStartTimer = null;
+    this.hasRenderedInitialMap = false;
   }
 
   init(data = {}) {
@@ -393,8 +394,6 @@ export default class GameScene extends Phaser.Scene {
 
     // Создаем сетку
     this.createGrid();
-
-    void YandexService.notifyGameReady();
   }
 
   clearMap() {
@@ -459,11 +458,7 @@ export default class GameScene extends Phaser.Scene {
     // Рисуем границы и заборы
     this.drawBorders();
 
-    // Вызываем GameplayAPI.start() после отрисовки игрового поля
-    // Используем delayedCall чтобы убедиться, что поле уже отрисовано на экране
-    this.gameplayStartTimer = this.time.delayedCall(100, () => {
-      void YandexService.startGameplay();
-    });
+    this.onMapRendered();
   }
 
   drawBorders() {
@@ -516,6 +511,26 @@ export default class GameScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  onMapRendered() {
+    if (!this.hasRenderedInitialMap) {
+      this.hasRenderedInitialMap = true;
+      void YandexService.notifyGameReady();
+    }
+
+    this.scheduleGameplayStart();
+  }
+
+  scheduleGameplayStart(delay = 100) {
+    if (this.gameplayStartTimer) {
+      this.gameplayStartTimer.remove();
+    }
+
+    this.gameplayStartTimer = this.time.delayedCall(delay, () => {
+      this.gameplayStartTimer = null;
+      void YandexService.startGameplay();
+    });
   }
 
   createUI() {
