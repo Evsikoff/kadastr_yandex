@@ -69,6 +69,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   preload() {
+    console.log('Запуск загрузочного экрана');
     // Загружаем файл с картами
     this.load.text('maps', 'maps/kadastrmapsmall.txt');
 

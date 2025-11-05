@@ -137,6 +137,7 @@ class YandexServiceClass {
     }
 
     try {
+      console.log('Первый вызов ysdk.features.LoadingAPI.ready()');
       ysdk.features.LoadingAPI.ready();
       this.loadingReadyCalled = true;
     } catch (error) {
@@ -151,6 +152,7 @@ class YandexServiceClass {
     }
 
     try {
+      console.log('Первый вызов ysdk.features.GameplayAPI.start()');
       ysdk.features.GameplayAPI.start();
     } catch (error) {
       console.warn('Failed to start GameplayAPI:', error);
