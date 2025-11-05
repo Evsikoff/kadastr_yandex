@@ -34,6 +34,7 @@ export default class GameScene extends Phaser.Scene {
     this.visibilityChangeHandler = null;
     this.isVictoryModalVisible = false;
     this.isAdInProgress = false;
+    this.gameplayStartTimer = null;
   }
 
   init(data = {}) {
@@ -394,15 +395,20 @@ export default class GameScene extends Phaser.Scene {
     this.createGrid();
 
     void YandexService.notifyGameReady();
-    void YandexService.startGameplay();
   }
 
   clearMap() {
+    // Отменяем таймер запуска геймплея если он еще не сработал
+    if (this.gameplayStartTimer) {
+      this.gameplayStartTimer.remove();
+      this.gameplayStartTimer = null;
+    }
+
     // Удаляем все объекты сетки
     if (this.gridContainer) {
       this.gridContainer.destroy();
     }
-    
+
     this.grid = [];
     this.houses = [];
     this.blockedCells.clear();
@@ -452,6 +458,12 @@ export default class GameScene extends Phaser.Scene {
     
     // Рисуем границы и заборы
     this.drawBorders();
+
+    // Вызываем GameplayAPI.start() после отрисовки игрового поля
+    // Используем delayedCall чтобы убедиться, что поле уже отрисовано на экране
+    this.gameplayStartTimer = this.time.delayedCall(100, () => {
+      void YandexService.startGameplay();
+    });
   }
 
   drawBorders() {
