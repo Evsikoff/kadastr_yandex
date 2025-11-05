@@ -133,12 +133,20 @@ class YandexServiceClass {
 
   async notifyGameReady() {
     const ysdk = await this.init();
-    if (!ysdk?.features?.LoadingAPI?.ready || this.loadingReadyCalled) {
+    console.log('Попытка вызвать ysdk.features.LoadingAPI.ready()');
+
+    if (!ysdk?.features?.LoadingAPI?.ready) {
+      console.warn('LoadingAPI.ready() недоступен');
+      return;
+    }
+
+    if (this.loadingReadyCalled) {
+      console.log('Вызов ysdk.features.LoadingAPI.ready() пропущен: уже вызывался ранее');
       return;
     }
 
     try {
-      console.log('Первый вызов ysdk.features.LoadingAPI.ready()');
+      console.log('Вызов ysdk.features.LoadingAPI.ready()');
       ysdk.features.LoadingAPI.ready();
       this.loadingReadyCalled = true;
     } catch (error) {
@@ -148,7 +156,10 @@ class YandexServiceClass {
 
   async startGameplay() {
     const ysdk = await this.init();
+    console.log('Попытка вызвать ysdk.features.GameplayAPI.start()');
+
     if (!ysdk?.features?.GameplayAPI?.start) {
+      console.warn('GameplayAPI.start() недоступен');
       return;
     }
 
@@ -160,12 +171,8 @@ class YandexServiceClass {
     }
 
     try {
-      if (!this.firstGameplayStarted) {
-        console.log('Первый вызов ysdk.features.GameplayAPI.start() после отрисовки карты');
-        this.firstGameplayStarted = true;
-      } else {
-        console.log('Вызов ysdk.features.GameplayAPI.start()');
-      }
+      console.log('Вызов ysdk.features.GameplayAPI.start()');
+      this.firstGameplayStarted = true;
       ysdk.features.GameplayAPI.start();
     } catch (error) {
       console.warn('Failed to start GameplayAPI:', error);

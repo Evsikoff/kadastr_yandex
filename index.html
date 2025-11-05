@@ -221,9 +221,20 @@
   <script>
     // Hide loading screen after 5 seconds
     window.addEventListener('DOMContentLoaded', () => {
+      const loadingScreen = document.getElementById('loading-screen');
+
+      if (loadingScreen) {
+        console.log('Показ загрузочного экрана');
+      }
+
       setTimeout(() => {
         const loadingScreen = document.getElementById('loading-screen');
+        if (!loadingScreen) {
+          return;
+        }
+
         loadingScreen.classList.add('hidden');
+        console.log('Конец показа загрузочного экрана');
 
         // Remove from DOM after animation completes
         setTimeout(() => {
