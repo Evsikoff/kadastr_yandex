@@ -40,16 +40,4 @@ window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
 });
 
-void YandexService.init();
-
 const game = new Phaser.Game(config);
-
-if (isMobileDevice) {
-  const handleResize = () => {
-    const { width, height } = getGameSize();
-    game.scale.resize(width, height);
-  };
-
-  window.addEventListener('resize', handleResize);
-  window.addEventListener('orientationchange', handleResize);
-}
