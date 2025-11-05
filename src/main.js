@@ -40,4 +40,19 @@ window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
 });
 
+// Отслеживание изменения ориентации экрана на мобильных устройствах
+if (isMobileDevice) {
+  let currentOrientation = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
+
+  window.addEventListener('resize', () => {
+    const newOrientation = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
+
+    // Если ориентация изменилась, перезагружаем страницу
+    if (newOrientation !== currentOrientation) {
+      currentOrientation = newOrientation;
+      window.location.reload();
+    }
+  });
+}
+
 const game = new Phaser.Game(config);
