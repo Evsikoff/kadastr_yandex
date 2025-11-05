@@ -593,8 +593,8 @@ export default class GameScene extends Phaser.Scene {
       const bottomGap = 20;
 
       layout.header = {
-        titleY: 25,
-        subtitleY: 85,
+        titleY: 40,
+        subtitleY: 100,
         titleStyle: {
           fontSize: '52px',
           color: '#2F4858',
@@ -832,8 +832,8 @@ export default class GameScene extends Phaser.Scene {
       const bottomGap = 18;
 
       layout.header = {
-        titleY: 40,
-        subtitleY: 110,
+        titleY: 55,
+        subtitleY: 125,
         titleStyle: {
           fontSize: '46px',
           color: '#2F4858',
@@ -1053,8 +1053,8 @@ export default class GameScene extends Phaser.Scene {
         }
       };
     } else {
-      const headerTitleY = 60;
-      const headerSubtitleY = 140;
+      const headerTitleY = 75;
+      const headerSubtitleY = 155;
       const statsContentTop = 220;
       const statsHeight = 130;
       const statsPadding = 22;
