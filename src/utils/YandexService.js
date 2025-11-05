@@ -5,6 +5,8 @@ class YandexServiceClass {
     this.playerPromise = null;
     this.loadingReadyCalled = false;
     this.firstGameplayStarted = false;
+    this.mapRendered = false;
+    this.loadingScreenHidden = false;
   }
 
   async init() {
@@ -131,9 +133,45 @@ class YandexServiceClass {
     return this.setCloudData(key, null);
   }
 
+  hasInitialLoadCompleted() {
+    return this.mapRendered && this.loadingScreenHidden;
+  }
+
+  async markMapReady() {
+    if (!this.mapRendered) {
+      this.mapRendered = true;
+    }
+
+    return this.tryFinalizeInitialLoading();
+  }
+
+  async markLoadingScreenHidden() {
+    if (!this.loadingScreenHidden) {
+      this.loadingScreenHidden = true;
+    }
+
+    return this.tryFinalizeInitialLoading();
+  }
+
+  async tryFinalizeInitialLoading() {
+    if (!this.hasInitialLoadCompleted()) {
+      return;
+    }
+
+    await this.notifyGameReady();
+    await this.startGameplay();
+  }
+
   async notifyGameReady() {
     const ysdk = await this.init();
     if (!ysdk?.features?.LoadingAPI?.ready || this.loadingReadyCalled) {
+      return;
+    }
+
+    if (!this.hasInitialLoadCompleted()) {
+      console.log(
+        'LoadingAPI.ready() запрошен до завершения отображения карты и скрытия загрузочного экрана. Ожидаем события.'
+      );
       return;
     }
 
@@ -152,10 +190,15 @@ class YandexServiceClass {
       return;
     }
 
-    if (!this.loadingReadyCalled) {
+    if (!this.hasInitialLoadCompleted()) {
       console.log(
-        'GameplayAPI.start() запрошен до вызова LoadingAPI.ready(). Ожидаем отрисовку карты.'
+        'GameplayAPI.start() запрошен до завершения отображения карты и скрытия загрузочного экрана. Ожидаем события.'
       );
+      return;
+    }
+
+    if (!this.loadingReadyCalled) {
+      console.log('GameplayAPI.start() запрошен до вызова LoadingAPI.ready(). Ожидаем готовность SDK.');
       return;
     }
 
