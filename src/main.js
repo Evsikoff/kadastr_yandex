@@ -35,6 +35,18 @@ const config = {
   antialias: true
 };
 
+const markLoadingScreenAsHidden = () => {
+  console.log('Завершён показ загрузочного экрана.');
+  void YandexService.markLoadingScreenHidden();
+};
+
+window.addEventListener('game-loading-screen-hidden', markLoadingScreenAsHidden);
+
+const loadingScreenElement = document.getElementById('loading-screen');
+if (!loadingScreenElement || loadingScreenElement.classList.contains('hidden')) {
+  markLoadingScreenAsHidden();
+}
+
 // Блокировка контекстного меню
 window.addEventListener('contextmenu', (e) => {
   e.preventDefault();

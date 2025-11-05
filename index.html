@@ -225,6 +225,8 @@
         const loadingScreen = document.getElementById('loading-screen');
         loadingScreen.classList.add('hidden');
 
+        window.dispatchEvent(new Event('game-loading-screen-hidden'));
+
         // Remove from DOM after animation completes
         setTimeout(() => {
           loadingScreen.remove();

@@ -516,7 +516,7 @@ export default class GameScene extends Phaser.Scene {
   onMapRendered() {
     if (!this.hasRenderedInitialMap) {
       this.hasRenderedInitialMap = true;
-      void YandexService.notifyGameReady();
+      void YandexService.markMapReady();
     }
 
     this.scheduleGameplayStart();
