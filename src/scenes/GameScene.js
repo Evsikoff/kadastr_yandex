@@ -514,6 +514,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onMapRendered() {
+    console.log('Завершение рисования игровой карты');
+
     if (!this.hasRenderedInitialMap) {
       this.hasRenderedInitialMap = true;
       void YandexService.markMapReady();
